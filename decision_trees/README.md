@@ -8,8 +8,6 @@ Take the classified data, and prepare it for RF/XGB:
 
 Great tutorial: https://www.kirenz.com/post/2021-02-17-r-classification-tidymodels/
 
-Jan 31 2023:
-
 ```R
 .libPaths('~/miniconda3/envs/tidymodels/lib/R/library')
 setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0021/projects/2021__Cuckoo_Resequencing/crow_scratch/2021-07_HybridZone/Nov/Classification_Sept/RF_JAN23/')
@@ -26,7 +24,7 @@ library(tidyverse)
 
 options(scipen=999)
 
-all <- read.table('../Full.DSS.BP-10x.Classified-Annotated_23JAN04.txt',header=T)
+all <- read.table('../Full.DSS.BP-10x.Classified-Annotated_23FEB09.txt',header=T)
 all <- all %>% arrange(chr,start)
 all <- all %>% mutate_at(grep("HapD|FuLi|Tajima|Dxy|FST|GC",colnames(.)),funs(as.numeric))
 all <- subset(all,Region != 'Missing' & Region != '.')
@@ -659,3 +657,13 @@ write.table(cis,file='../../Correlations_95CIs.txt',quote=F,sep='\t',row.names=F
 ![Regression Predictions](plotting_files/RF_Predictions.png)
 
 * Predictions from randomforest regression on testing set. 
+
+
+![Variable Importance](plotting_files/RF_VIP_All.pdf)
+
+* Variable permutation importance across all. 
+
+
+![Model fit](plotting_files/RF_Fit.pdf)
+
+* Model fit, all.
