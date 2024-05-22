@@ -1,5 +1,7 @@
 # Contributions of 5mC to Corvus evolution
 
+[![DOI](https://zenodo.org/badge/656417446.svg)](https://zenodo.org/doi/10.5281/zenodo.11244554)
+
 ## Overview
 This repository contains directories structured to facilitate a comprehensive analysis workflow integrating resequencing data and 3 5mC experiments.
 
