@@ -1,44 +1,48 @@
-# Decision Trees Assessing 5mC ~ Chromosomal Variation
+# Decision Trees 
 
-This uses as input largely the `RF-Input-23JAN31.txt.gz` found in `/plotting_files/`. 
-
-Figures at bottom. 
-
-Take the classified data, and prepare it for RF/XGB:
+Take the classified data, and prepare it for RF:
 
 Great tutorial: https://www.kirenz.com/post/2021-02-17-r-classification-tidymodels/
 
+## Prep
+
 ```R
-.libPaths('~/miniconda3/envs/tidymodels/lib/R/library')
-setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0021/projects/2021__Cuckoo_Resequencing/crow_scratch/2021-07_HybridZone/Nov/Classification_Sept/RF_JAN23/')
+.libPaths('~/mambaforge/envs/tidymodels/lib/R/library')
+setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept/RF_JAN25')
 library(dplyr)
 library(ggplot2)
-library(ggsci)
-library(reshape2)
 library(ggpubr)
 library(viridis)
 library(GGally)
-library(matrixStats)
-.libPaths('~/miniconda3/envs/r/lib/R/library')
+.libPaths('~/mambaforge/envs/r/lib/R/library')
 library(tidyverse)
-
+library(matrixStats)
 options(scipen=999)
 
-all <- read.table('../Full.DSS.BP-10x.Classified-Annotated_23FEB09.txt',header=T)
+all <- read.table('../Full.DSS.BP-10x.Classified-Annotated_20250107.txt',header=T)
 all <- all %>% arrange(chr,start)
 all <- all %>% mutate_at(grep("HapD|FuLi|Tajima|Dxy|FST|GC",colnames(.)),funs(as.numeric))
 all <- subset(all,Region != 'Missing' & Region != '.')
-c = read.table('../CG_DSS-10x.stat',header=TRUE)
-w = read.table('../WGBS_DSS-5x.stat',header=TRUE)
-h = read.table('../HZ_DSS-10x.stat',header=TRUE)
+c = read.table('../CG.DSS-10x.stat',header=TRUE) %>% select(site, mstat.cg = 'CG_stat')
+w = read.table('../WGBS.DSS-10x.stat',header=TRUE) %>% select(site, mstat.wgbs = 'stat_SpeciesS')
+h = read.table('../HZ.DSS.BP-Parentals-YearChr18HI_10x.stat',header=TRUE) %>% select(site, mstat.hz = 'stat_Chr18_Hybrid_Index')
 
 #merge data frames
 f = left_join(all,c) %>% 
   left_join(.,w) %>% 
-  left_join(.,h) %>% 
-  dplyr::rename(mstat.cg = CG_stat,
-                mstat.wgbs = WGBS_stat,
-                mstat.hz = HZ_stat)  
+  left_join(.,h) 
+s <- f %>% mutate(end = start) %>% select(chr,start,end,mstat.wgbs,mstat.cg,mstat.hz,Region) 
+write.table(s,file='../5mC_10x_STAT-Region_20250107.txt',quote=F,sep='\t',row.names=F)
+
+#examine some top hits from the methylation test statistic 
+# f2 %>% select(chr,start,contains(c('mstat.cg'))) %>% slice_max(mstat.cg,n = 10)
+# f2 %>% filter(chr == 'chr18' & start == 770644) %>% select(chr,contains(c('S_','D_'),ignore.case = F)) %>% 
+#   select(chr,contains(c('.cg'))) %>% 
+#   pivot_longer(!c(chr)) %>% 
+#   separate(name, into=c('species','locality','ID','tissue','age','sex','xp')) %>% 
+#   ggplot(aes(x=species,y=value,col=age,shape=sex))+
+#   geom_point(position=position_jitter())+
+#   theme_bw()
 
 #cycle through the experiments 
 xps = c('hz','wgbs','cg')
@@ -65,8 +69,17 @@ for (xp in xps){
 }
 da 
 
+rfdat <- NULL
 for (xp in xps){
-  cat('Creating output for: ',xp,'\n')
+  
+  title <- case_when(
+    xp == 'cg' ~ 'ComGar.RRBS',
+    xp == 'wgbs' ~ 'ComGar.WGBS',
+    xp == 'hz' ~ 'HybZon.RRBS',
+    TRUE ~ NA_character_
+  )
+  
+  cat('Creating output for: ',xp,', ',title,'\n')
   #add chr length and position
   kb = f %>% select(chr,Region,GenStart,GenEnd,HapD,FuLiD,TajimaD,Dxy,FST,GC,as.symbol(paste0('mstat.',xp))) %>% 
     dplyr::rename(val = as.symbol(paste0('mstat.',xp))) %>% 
@@ -115,9 +128,13 @@ for (xp in xps){
   #replot
   xfmp  = xfm %>% select(variable,valueuse,raw) %>% 
     pivot_longer(!c(variable)) %>% 
+    mutate(name = case_when(
+      name == 'valueuse' ~ 'log(Raw)',
+      name == 'raw' ~ 'Raw')) %>% 
     ggplot(aes(x=value,fill=name))+
     geom_density()+scale_fill_manual(values=viridis(4,option='inferno'))+
     facet_wrap(name~variable,scales='free',ncol=4)+
+    ggtitle(paste0('Continuous: ',title))+
     theme_classic()
   assign(paste0(xp,'_values'),xfmp)
   
@@ -134,46 +151,27 @@ for (xp in xps){
     geom_histogram()+
     scale_fill_viridis(discrete=TRUE,option='mako')+
     geom_vline(data=thresh, aes(xintercept=Threshold),lty=2,lwd=0.5,col='yellow')+
-    ylab('')+theme_classic()+ggtitle('Binary')
-  ##### TRINARY
-  tdat = dat
-  thresh = tdat %>% group_by(variable) %>% summarize(ThresholdHi = quantile(valueuse,0.8),
-                                                     ThresholdLo = quantile(valueuse,0.2))
-  tdat = left_join(tdat,thresh)
-  tdat = tdat %>% mutate(Classified = ifelse(valueuse >=ThresholdHi, 'High',
-                                             ifelse(valueuse >=ThresholdLo,'Intermediate',
-                                                    ifelse(valueuse < ThresholdLo,'Low','Miss'))))
-  tdat %>% dplyr::count(Classified)
-  trip = tdat %>% ggplot(aes(x=valueuse,fill=variable)) + 
-    facet_wrap(~variable,scales='free')+
-    geom_histogram()+
-    scale_fill_viridis(discrete=TRUE,option='mako')+
-    geom_vline(data=thresh, aes(xintercept=ThresholdHi),lty=2,lwd=0.5,col='yellow')+
-    geom_vline(data=thresh, aes(xintercept=ThresholdLo),lty=2,lwd=0.5,col='yellow')+
-    ylab('')+theme_classic()+ggtitle('Trinary')
-  gp = ggarrange(binp,trip,common.legend = TRUE,nrow = 2)
-  assign(paste0(xp,'_thresh'),gp)
+    ylab('')+theme_classic()+
+    ggtitle(paste0('Binary: ',title))
+  assign(paste0(xp,'_thresh'),binp)
   
   #merge them 
-  td = tdat %>% select(-contains(c('Thresh','valueuse'))) %>% dplyr::rename(Trinary=Classified)
-  bd = bdat %>% select(-contains('Thresh')) %>% dplyr::rename(Binary=Classified)
-  ad = full_join(td,bd)
-  ad = ad %>% dplyr::rename(Continuous = valueuse)
-  ad = ad %>% mutate(Relativepos = GenStart / Length)
+  bd = bdat %>% select(-contains('Thresh')) %>% dplyr::rename(Continuous = valueuse)
+  ad = bd %>% mutate(Relativepos = GenStart / Length)
   ad$Subset = toupper(xp)
   rfdat = rbind(rfdat,ad)
 }
 
-pdf('Raw_Distributions.pdf',height=5,width=5)
+pdf('20250107_Raw_Distributions.pdf',height=5,width=5)
 ggarrange(wgbs_values,cg_values,hz_values,common.legend = TRUE,nrow=3)
 dev.off()
 
-pdf('Raw_Thresholds.pdf',height=10,width=4)
+pdf('20250107_Raw_Thresholds.pdf',height=6,width=4)
 ggarrange(wgbs_thresh,cg_thresh,hz_thresh,common.legend = TRUE,nrow=3)
 dev.off()
 
 #save frame 
-write.table(rfdat,file='RF-Input-23JAN31.txt',quote=F,sep='\t',row.names=F)
+write.table(rfdat,file='RF-Input-250107.txt',quote=F,sep='\t',row.names=F)
 
 #output correlations among variables
 cord = NULL
@@ -183,32 +181,34 @@ for (xp in xps){
   np = d1 %>% 
     select(Length,Relativepos,Region,HapD,FuLiD,TajimaD,Dxy,FST,GC) %>% 
     correlate(method='spearman') %>%    # Create correlation data frame (cor_df)
-    network_plot(min_cor = 0,legend='range')
+    corrr::network_plot(min_cor = 0,legend='range')
   assign(paste0(xp,'_cor'),np)
   
-  x = d1 %>% 
-    select(Length,Relativepos,Region,HapD,FuLiD,TajimaD,Dxy,FST,GC) %>% 
-    correlate() %>%    # Create correlation data frame (cor_df)
-    rearrange() %>%  # rearrange by correlations
-    shave() # Shave off the upper triangle for a clean result
+  x = d1 %>%
+    select(Length,Relativepos,Region,HapD,FuLiD,TajimaD,Dxy,FST,GC) %>%
+    corrr::correlate() %>%    # Create correlation data frame (cor_df)
+    rearrange()  # rearrange by correlations
   x$experiment = xp
   cord = rbind(cord,x)
 }
 
-pdf('Correlations_RF_Input.pdf',height=6,width=12)
+pdf('20250107_Correlations_RF_Input.pdf',height=6,width=12)
 ggarrange(WGBS_cor,CG_cor,HZ_cor,labels=c('ComGar.WGBS','ComGar.RRBS','HybZon.RRBS'),nrow=1)
 dev.off()
 
-write.table(cord,file='Correlations_RF_Input.txt',quote=F,sep='\t',row.names=F)
+write.table(cord,file='20250107_Correlations_RF_Input.txt',quote=F,sep='\t',row.names=F)
+
 ```
+
+## Run RF & XGB
 
 Once the data is prepared, grow the forests: 
 
 ```R
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
-.libPaths('~/miniconda3/envs/tidymodels/lib/R/library')
-setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0021/projects/2021__Cuckoo_Resequencing/crow_scratch/2021-07_HybridZone/Nov/Classification_Sept/RF_JAN23')
+.libPaths('~/mambaforge/envs/tidymodels/lib/R/library')
+setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept/RF_JAN25')
 #### Randomforest Classification
 library(tidymodels)
 library(GGally)
@@ -229,8 +229,8 @@ cores <- 5
 cl <- makePSOCKcluster(cores)
 registerDoParallel(cl)
 
-dats <- read.table('RF-Input-23JAN13.txt',header=T)
-type = args[1]  #e.g. Binary,Trinary,Regression
+dats <- read.table('RF-Input-250107.txt',header=T)
+type = args[1]  #e.g. Binary,Regression
 vari = args[2] #e.g. Mean,Max
 xp = args[3] #subset experiment, CG WGBS HZ
 iter = args[4] #iteration
@@ -241,9 +241,9 @@ if (type == 'Regression') {
   rf = dat %>% select(c(Continuous,Length,Relativepos,Region,HapD,FuLiD,TajimaD,Dxy,FST,GC))
   rf = rf %>% dplyr::rename(Response = Continuous)
 } else {
-  cat('Response type is Binary/Trinary, taking classified values\n')
+  cat('Response type is Binary, taking classified values\n')
   rf = dat %>% select(c(as.symbol(type),Length,Relativepos,Region,HapD,FuLiD,TajimaD,Dxy,FST,GC))
-  rf = rf %>% dplyr::rename(Response = as.symbol(type))
+  rf = rf %>% dplyr::rename(Response = Classified)
 }
 
 #for exploration, run on subset
@@ -297,7 +297,7 @@ if (type == 'Regression') {
   xgb_vi$Engine = 'XGBoost'
   xgb_fit = xgb_last %>% collect_metrics()
   xgb_fit$Engine = 'XGBoost'
-
+  
   #randomforest
   rf_mod = rand_forest(trees = tune(),min_n = tune(),mtry = tune()) %>% set_engine("ranger",importance="permutation") %>% set_mode("regression")
   rf_wf = workflow(mc_recipe, rf_mod)
@@ -310,9 +310,10 @@ if (type == 'Regression') {
   rf_vi$Engine = 'Random forest'
   rf_fit = rf_last %>% collect_metrics()
   rf_fit$Engine = 'Random forest'
-
+  
 } else {
-  cat('Response type is Binary/Trinary, using classification engines\n')
+  cat('Response type is Binary, using classification engines\n')
+  rf_fit = NULL
   #boosted trees
   xgb_mod = boost_tree(trees = tune(),min_n = tune(),mtry = tune(),learn_rate = tune()) %>% set_engine("xgboost",importance="permutation") %>% set_mode("classification")
   xgb_wf <- workflow(mc_recipe, xgb_mod)
@@ -348,6 +349,7 @@ names(preds) = c('Predicted','Truth','Engine')
 preddf = data.frame(preds,Type = type,Response = vari,Subset = xp,Iteration=iter)
 #preddf
 write.table(preddf,file=paste0('results/',type,'_',vari,'_',xp,'_',iter,'_PRED.txt'),quote=F,sep='\t',row.names=F)
+
 ```
 
 Launch:
@@ -361,15 +363,18 @@ Merge results:
 ```bash
 mergem *VI*txt > Master.vi
 mergem *FIT*txt > Master.fit
+mergem Class*PRED* > Classification_Predictions.txt
+mergem Regre*PRED* > Regression_Predictions.txt
 ```
+
+## Plot
 
 And plot results:
 
 ```R
 .libPaths('~/mambaforge/envs/r/lib/R/library')
-setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0021/projects/2021__Cuckoo_Resequencing/crow_scratch/2021-07_HybridZone/Nov/Classification_Sept/RF_JAN23/results')
-#setwd('F:/Research/scratch/crow_hybrid_paper/rf/2023_01/')
-#### Randomforest Classification
+setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept/RF_JAN25/results')
+#### Plot decision tree results
 library(tidyverse)
 library(viridis)
 library(forcats)
@@ -415,10 +420,11 @@ fpc = fs %>%
   #theme(legend.position='none')+
   facet_grid(Metric~Type,scales='free')
 fpc
-fpa = ggarrange(fpr,fpc,widths = c(0.6,1.2))
+fpa = ggarrange(fpr,fpc,widths = c(0.75,1.2))
+fpa
 
 #save
-pdf('RF_Fit.pdf',height=5,width=8)
+pdf('20250107_RF_Fit.pdf',height=5,width=8)
 fpa
 dev.off()
 
@@ -465,13 +471,36 @@ vip
 viS = vi %>% group_by(Subset,Response,Type,Variable,Engine) %>% 
   #filter(Response == 'Mean' & Type == 'Regression') %>% 
   summarize(mean = ci(PctImp)[1],
-            hi = ci(PctImp)[2],
-            lo = ci(PctImp)[3],
-            sd = ci(PctImp)[4])
-write.table(viS,file='Permutation_Importance.txt',quote=F,sep='\t',row.names=F)
+            lo = ci(PctImp)[2],
+            hi = ci(PctImp)[3],
+            se = ci(PctImp)[4])
+write.table(viS,file='20250107_Permutation_Importance.txt',quote=F,sep='\t',row.names=F)
+
+# Across all experiments, as reported in main text
+vi %>% group_by(Variable) %>% 
+  filter(Response == 'Mean' & Type == 'Regression') %>% 
+  summarize(mean = ci(PctImp)[1],
+            lo = ci(PctImp)[2],
+            hi = ci(PctImp)[3],
+            se = ci(PctImp)[4])
+
+# Variable               mean     lo     hi      se
+# <chr>                 <dbl>  <dbl>  <dbl>   <dbl>
+#   1 Chromosomal Position 0.0542 0.0478 0.0605 0.00320
+# 2 Chromosome Length    0.0731 0.0670 0.0792 0.00307
+# 3 Dxy                  0.104  0.0919 0.116  0.00612
+# 4 FST                  0.0238 0.0202 0.0274 0.00182
+# 5 Fu & Li's D*         0.0558 0.0514 0.0601 0.00218
+#  6 GC-Content           0.284  0.260  0.308  0.0121 
+#  7 Haplotype Diversity  0.120  0.109  0.132  0.00598
+#  8 Region_Intergenic    0.0315 0.0272 0.0357 0.00214
+#  9 Region_Intron        0.0251 0.0210 0.0292 0.00207
+# 10 Region_Promoter      0.145  0.111  0.178  0.0168 
+# 11 Region_Repeat        0.0168 0.0122 0.0215 0.00231
+# 12 Tajima's D           0.0674 0.0616 0.0732 0.00291
 
 #save
-pdf('RF_VIP_Regression.pdf',height=6,width=6)
+pdf('20250107_RF_VIP_Regression.pdf',height=6,width=6)
 vip 
 dev.off()
 
@@ -489,7 +518,7 @@ ALL = ALL %>%
 ALL$Subset <- factor(ALL$Subset,levels=c('ComGar.WGBS','ComGar.RRBS','HybZon.RRBS'))
 #find most important overall, we will sort by this
 ALL = left_join(ALL,imps %>% ungroup %>% select(Variable,ORDER))
-ALL$Type = factor(ALL$Type,levels=c('Regression','Binary','Trinary'))
+ALL$Type = factor(ALL$Type,levels=c('Regression','Classification'))
 ALLp = ALL %>% 
   mutate(NewOrd = fct_reorder(Variable,ORDER,.desc = TRUE)) %>% 
   ggplot(aes(y=NewOrd,x=mean,fill=Subset))+
@@ -504,12 +533,11 @@ ALLp = ALL %>%
 ALLp
 
 #save
-pdf('RF_VIP_All.pdf',height=6,width=10)
+pdf('20250107_RF_VIP_All.pdf',height=6,width=10)
 ALLp
 dev.off()
 
 #evalute predictions
-
 conf = read.table('Regression_Predictions.txt',header=T,sep='\t')
 cp = conf %>% 
   ggplot(aes(x=Predicted,y=Truth,col=Subset))+
@@ -519,151 +547,25 @@ cp = conf %>%
   scale_color_manual(values=c(viridis(3)))+
   theme_bw()+xlab('Predicted')+ylab('Truth')+
   theme(legend.position = "none")+
-  facet_wrap(Subset~Response,scales='free',nrow=2)
+  facet_wrap(Subset~Response,scales='free',nrow=3)
 cp
+
+#evalute predictions, classification
+confclass = read_tsv('Classification_Predictions.txt')
+confclass %>% group_by(Predicted,Truth,Engine,Response,Subset) %>% 
+  summarize(count = n()) %>% 
+  ggplot(aes(x=Predicted,y=Truth,fill=count))+
+  geom_tile()+
+  scale_fill_continuous(low='yellow',high='red')+
+  theme_bw()+xlab('Predicted')+ylab('Truth')+
+  facet_grid(Response+Engine~Subset,scales='free')
+
 
 #save
-png('RF_Predictions.png',height=7,width=11,res=600,units='in')
-pdf('RF_Predictions.pdf',height=5,width=2.5)
+png('20250107_RF_Predictions.png',height=5,width=3.5,res=600,units='in')
 cp
 dev.off()
 
-#Spearman's rank correlation 
-conf %>% 
-  group_by(Response,Type,Subset) %>% 
-  summarize(Spearman = cor(Predicted,Truth,method='spearman'))
-
-# # A tibble: 6 × 4
-# # Groups:   Response, Type [2]
-# Response Type       Subset Spearman
-# <chr>    <chr>      <chr>     <dbl>
-#   1 Max      Regression CG        0.309
-# 2 Max      Regression HZ        0.288
-# 3 Max      Regression WGBS      0.529
-# 4 Mean     Regression CG        0.477
-# 5 Mean     Regression HZ        0.341
-# 6 Mean     Regression WGBS      0.193
-```
-
-## Rho: 5mC & Population Genetic
-
-For genetic v 5mC correlations using the RF input (within 5kb windows):
-
-```R
-.libPaths('~/miniconda3/envs/r/lib/R/library')
-setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0021/projects/2021__Cuckoo_Resequencing/crow_scratch/2021-07_HybridZone/Nov/Classification_Sept/RF_JAN23/init4/')
-#setwd('F:/Research/scratch/crow_hybrid_paper/rf/2023_01/')
-#### Randomforest Classification
-library(tidyverse)
-library(viridis)
-library(forcats)
-library(ggpubr)
-library(rstatix)
-library(gmodels)
-library(RColorBrewer)
-
-#plot some of the interesting comparisons
-rf = read.table('../RF-Input-23JAN31.txt',header=TRUE)
-
-### Correlations: 5mC / genetic variation
-cat('Working on correlations for genetic variation, 5mc \n')
-rf1 = rf %>% filter(variable == 'Mean') %>% select(chr,GenStart,GenEnd,raw,HapD,FuLiD,TajimaD,Dxy,FST,Subset)
-rf1 = rf1 %>% mutate(Focal_Region = ifelse(chr == '18' & GenStart > 8070001 & GenStart < 10070000,'Focal','Undiverged'))
-rf2 = rf1 %>%
-  pivot_longer(!c(chr,GenStart,GenEnd,raw,Subset,Focal_Region)) %>%
-  na.omit()
-xps = c('CG','HZ','WGBS')
-
-fullboots = NULL
-options(dplyr.summarise.inform = FALSE)
-set.seed(123)
-B <- 999 # number of bootstrap replicates
-
-for (xp in xps) {
-  for (vr in unique(rf2$name)) {
-    cat('Working on Experiment & Variable: ',xp,' ',vr,'\n')
-    bd = rf2 %>% filter(Subset == xp & name == vr)
-    n = bd %>% filter(Focal_Region == 'Focal') %>% nrow
-    bdat=NULL
-    ## Run the bootstrap procedure:
-    for (b in 1:B) {
-      cat('Iteration: ',b,'\n')
-      d1 = bd %>% group_by(Focal_Region) %>% slice_sample(n=n,replace=TRUE) %>% summarize(cor = cor(raw,value,method='spearman'))
-      bdat = rbind(bdat,d1 )
-    }
-    bdat$Experiment = xp
-    bdat$Variable = vr
-    names(bdat) = c('Focal_Region','Boots','Experiment','Variable')
-    fullboots = rbind(fullboots,bdat)
-  }
-}
-
-write.table(fullboots,file=paste0('Genetic5mC_Bootstraped_Results-2023FEB14.txt'),quote=F,sep='\t',row.names=F)
-fullboots = read.table('Genetic5mC_Bootstraped_Results-2023FEB14.txt',header=TRUE)
-
-#add counts for windows 
-features = rf2 %>% group_by(Subset,Focal_Region,name) %>% count()
-names(features)= c('Experiment','Focal_Region','Variable')
-
-cdm = fullboots %>% 
-  mutate(Experiment = gsub('CG','ComGar.RRBS',Experiment),
-         Experiment = gsub('WGBS','ComGar.WGBS',Experiment),
-         Experiment = gsub('HZ','HybZon.RRBS',Experiment))
-cdm$Experiment <- factor(cdm$Experiment,levels=c('HybZon.RRBS','ComGar.RRBS','ComGar.WGBS'))
-#calculate CIs
-cis = cdm %>% 
-  group_by(Experiment,Variable,Focal_Region) %>% 
-  summarize(LowerBound = quantile(Boots,0.025), #can change based on your significance threshold 
-            UpperBound = quantile(Boots,0.975))
-cis = cis %>% group_by(Experiment,Variable) %>% 
-  mutate(Signif = ifelse(LowerBound > 0 | UpperBound < 0,'*','n.s.'))
-
-genp = cdm %>% 
-  ggplot(aes(x=Variable,y=Boots,fill=Focal_Region))+
-  geom_violin(alpha=0.75,draw_quantiles = c(0.025,0.975))+
-  geom_text(data=cis,aes(x=Variable,col=Focal_Region,group=Focal_Region,y=Inf,label=Signif,size=Signif),col='black',vjust=1.5,position=position_dodge(width=1))+
-  scale_size_manual(values=c(6,4))+
-  scale_fill_manual(values=c('darkorchid2','grey60'))+
-  facet_grid(Experiment~.,scales='free')+
-  geom_hline(yintercept=0,lty=2)+
-  ylab("Spearman's Rho: Taxon Methylation Divergence") + xlab('')+
-  scale_y_continuous(expand = expansion(mult = .25)) + #expand y axis slightly 
-  theme_bw()
-genp
-
-pdf('../../RF_GenCorBootBootstraps.pdf',height=4,width=5)
-genp
-dev.off()
-
-write.table(cis,file='../../Correlations_95CIs.txt',quote=F,sep='\t',row.names=F)
 ```
 
 
-![Correlations of input variables](plotting_files/Correlations_RF_Input.pdf)
-
-* Correlations of input variables 
-
-
-![Raw Distributions](plotting_files/Raw_Distributions.pdf)
-
-* Raw distributions of input 5mC 
-
-
-![Raw Distributions Thresholds](plotting_files/Raw_Thresholds.pdf)
-
-* Thresholds used for binary / trinary classification of distributions of input 5mC 
-
-
-![Regression Predictions](plotting_files/RF_Predictions.png)
-
-* Predictions from randomforest regression on testing set. 
-
-
-![Variable Importance](plotting_files/RF_VIP_All.pdf)
-
-* Variable permutation importance across all. 
-
-
-![Model fit](plotting_files/RF_Fit.pdf)
-
-* Model fit, all.

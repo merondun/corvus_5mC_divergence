@@ -3,33 +3,32 @@
 Plot the distributions of our crows. 
 
 ```R
-#install.packages(c('cowplot', 'googleway', 'ggplot2', 'ggrepel', 'ggspatial', 'libwgeom', 'sf', 'rnaturalearth', 'rnaturalearthdata'))
-setwd('F:/Research/scratch/crow_hybrid_paper')
+# Local on lenovo
+install.packages(c('cowplot', 'googleway', 'ggplot2', 'ggrepel', 'ggspatial', 'libwgeom', 'sf', 'rnaturalearth', 'rnaturalearthdata'))
+setwd('G:/My Drive/Research/Crow_Hybrid_Epigenetics/spatial/2025_01')
 library(rnaturalearth)
 library(rnaturalearthdata)
-library(dplyr)
 library(sf)
-library(ggplot2)
 library(viridis)
 library(ggspatial)
+library(tidyverse)
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 class(world)
 ggplot(data = world) +
   geom_sf(color = "black", fill = "palegreen")
 
-cd <- read.table('All-Metadata.txt',header=TRUE)
-hz = subset(cd,Retained==1 & Experiment == 'HZ')
+cd <- read_tsv('../../All-Metadata.txt')
+hz = cd %>% filter(Experiment == 'HZ')
 sites <- st_as_sf(hz, coords = c("Longitude", "Latitude"), 
                   crs = 4326, agr = "constant")
 plum =
   ggplot(data = world) +
-  geom_rect(aes(xmin = min(cd$Longitude)-5, xmax = max(cd$Longitude)+5, 
-                ymin = min(cd$Latitude)-1, ymax=max(cd$Latitude)+1),fill='lightblue1')+
+  geom_rect(aes(xmin = min(hz$Longitude)-5, xmax = max(hz$Longitude)+5, 
+                ymin = min(hz$Latitude)-1, ymax=max(hz$Latitude)+1),fill='lightblue1')+
   geom_sf(fill = "white") +
-  geom_sf(data = sites, size = 8, aes(fill = Temperature, shape=as.factor(Species)),col='black') +
-  scale_fill_gradient(low='blue',high='yellow')+
-  #scale_fill_gradient(low='grey10',high='grey75')+
+  geom_sf(data = sites, size = 6, aes(fill = Chr18_Hybrid_Index, shape=as.factor(Capture_Year)),col='black') +
+  scale_fill_gradient(low='grey30',high='grey90')+
   scale_shape_manual(values=c(24,21,23))+
   annotation_scale(location = "br", width_hint = 0.3,pad_x = unit(0.3, "in")) +
   annotation_north_arrow(location = "br", which_north = "true", 
@@ -40,9 +39,32 @@ plum =
   theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
 plum
 
-png('Crow_Distribution-2022SEPT12.png',units='in',res=600,height=5,width=8,bg='transparent')
-plum
-dev.off()
+ggsave('20250107_Crow_Distribution.pdf',plum,dpi=300,height=5,width=8)
+
+## Focus only on hybrids
+hybs <- cd %>% filter(Experiment == 'HZ' & grepl('H_',Short_ID))
+hybs <- hybs %>% mutate(Latitude = jitter(Latitude,amount=0.1),
+                        Longitude = jitter(Longitude,amount=0.1))
+sites_hybs <- st_as_sf(hybs, coords = c("Longitude", "Latitude"), 
+                  crs = 4326, agr = "constant")
+plum_hyb =
+  ggplot(data = world) +
+  geom_sf(fill = "white") +
+  geom_sf(data = sites_hybs, size = 6, aes(fill = Chr18_Hybrid_Index, shape=as.factor(Capture_Year)),col='black') +
+  scale_fill_gradient(low='grey30',high='grey90')+
+  scale_shape_manual(values=c(24,21,23))+
+  annotation_scale(location = "br", width_hint = 0.3,pad_x = unit(0.3, "in")) +
+  annotation_north_arrow(location = "br", which_north = "true", 
+                         pad_x = unit(0.3, "in"), pad_y = unit(0.25, "in"),
+                         style = north_arrow_fancy_orienteering) +
+  coord_sf(xlim = c(min(hybs$Longitude)-2, max(hybs$Longitude)+2), 
+           ylim = c(min(hybs$Latitude)-1, max(hybs$Latitude)+1), expand = FALSE)+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))
+plum_hyb
+
+ggsave('20250107_Crow_Distribution-Hybrids.pdf',plum,dpi=300,height=4,width=6)
+
+
 ```
 
 Hybrid zoom:
@@ -96,12 +118,6 @@ plum
 dev.off()
 
 ```
-![All samples](plotting_files/Crow_Distribution-2023JAN23.png)
-
-All samples
 
 
-![Hybrids](plotting_files/Crow_Distribution-2023JAN31_HYBRIDS.png)
-
-Hybrids only
 
