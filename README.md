@@ -1,5 +1,9 @@
 # Contributions of 5mC to Corvus evolution
 
+The release corresponding to Jan 2025 is archived on zenodo: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14641851.svg)](https://doi.org/10.5281/zenodo.14641851)
+
+Large data files can be found on zenodo: https://zenodo.org/doi/10.5281/zenodo.14641719
+
 ## Overview
 This repository contains directories structured to facilitate a comprehensive analysis workflow integrating resequencing data and 3 5mC experiments.
 
