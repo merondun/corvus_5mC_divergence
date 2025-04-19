@@ -8,7 +8,7 @@ Great tutorial: https://www.kirenz.com/post/2021-02-17-r-classification-tidymode
 
 ```R
 .libPaths('~/mambaforge/envs/tidymodels/lib/R/library')
-setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept/RF_JAN25')
+setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504/RFS_202504/')
 library(dplyr)
 library(ggplot2)
 library(ggpubr)
@@ -17,35 +17,24 @@ library(GGally)
 .libPaths('~/mambaforge/envs/r/lib/R/library')
 library(tidyverse)
 library(matrixStats)
+library(corrr)
 options(scipen=999)
 
-all <- read.table('../Full.DSS.BP-10x.Classified-Annotated_20250107.txt',header=T)
+all <- read.table('../Full-HZ-CG.DSS.BP-10x.Classified-Annotated-SNPless_20250410.txt',header=T)
 all <- all %>% arrange(chr,start)
 all <- all %>% mutate_at(grep("HapD|FuLi|Tajima|Dxy|FST|GC",colnames(.)),funs(as.numeric))
 all <- subset(all,Region != 'Missing' & Region != '.')
-c = read.table('../CG.DSS-10x.stat',header=TRUE) %>% select(site, mstat.cg = 'CG_stat')
-w = read.table('../WGBS.DSS-10x.stat',header=TRUE) %>% select(site, mstat.wgbs = 'stat_SpeciesS')
-h = read.table('../HZ.DSS.BP-Parentals-YearChr18HI_10x.stat',header=TRUE) %>% select(site, mstat.hz = 'stat_Chr18_Hybrid_Index')
+c = read.table('../CG_DSS.10x.stat',header=TRUE) %>% select(site, mstat.cg = 'stat_SpeciesS')
+h = read.table('../HZ_DSS.10x.stat',header=TRUE) %>% select(site, mstat.hz = 'stat_Chr18_Hybrid_Index')
 
 #merge data frames
 f = left_join(all,c) %>% 
-  left_join(.,w) %>% 
   left_join(.,h) 
-s <- f %>% mutate(end = start) %>% select(chr,start,end,mstat.wgbs,mstat.cg,mstat.hz,Region) 
-write.table(s,file='../5mC_10x_STAT-Region_20250107.txt',quote=F,sep='\t',row.names=F)
-
-#examine some top hits from the methylation test statistic 
-# f2 %>% select(chr,start,contains(c('mstat.cg'))) %>% slice_max(mstat.cg,n = 10)
-# f2 %>% filter(chr == 'chr18' & start == 770644) %>% select(chr,contains(c('S_','D_'),ignore.case = F)) %>% 
-#   select(chr,contains(c('.cg'))) %>% 
-#   pivot_longer(!c(chr)) %>% 
-#   separate(name, into=c('species','locality','ID','tissue','age','sex','xp')) %>% 
-#   ggplot(aes(x=species,y=value,col=age,shape=sex))+
-#   geom_point(position=position_jitter())+
-#   theme_bw()
+s <- f %>% mutate(end = start) %>% select(chr,start,end,mstat.cg,mstat.hz,Region) 
+write.table(s,file='../5mC_10x_STAT-Region_202504.txt',quote=F,sep='\t',row.names=F)
 
 #cycle through the experiments 
-xps = c('hz','wgbs','cg')
+xps = c('hz','cg')
 rfdat = NULL
 
 #add chr length information
@@ -68,13 +57,18 @@ for (xp in xps){
   da = rbind(da,d1)
 }
 da 
+# # A tibble: 2 × 6
+# nas total   gca   pct xp    gcall
+# <int> <int> <dbl> <dbl> <chr> <dbl>
+#   1   228 37883  67.9 0.602 hz     60.0
+# 2   356 34441  68.4 1.03  cg     61.4
+
 
 rfdat <- NULL
 for (xp in xps){
   
   title <- case_when(
     xp == 'cg' ~ 'ComGar.RRBS',
-    xp == 'wgbs' ~ 'ComGar.WGBS',
     xp == 'hz' ~ 'HybZon.RRBS',
     TRUE ~ NA_character_
   )
@@ -162,20 +156,20 @@ for (xp in xps){
   rfdat = rbind(rfdat,ad)
 }
 
-pdf('20250107_Raw_Distributions.pdf',height=5,width=5)
-ggarrange(wgbs_values,cg_values,hz_values,common.legend = TRUE,nrow=3)
+pdf('~/symlinks/hzone/Methylation_Analyses/figures/20250411_Raw_Distributions.pdf',height=5,width=5)
+ggarrange(cg_values,hz_values,common.legend = TRUE,nrow=3)
 dev.off()
 
-pdf('20250107_Raw_Thresholds.pdf',height=6,width=4)
-ggarrange(wgbs_thresh,cg_thresh,hz_thresh,common.legend = TRUE,nrow=3)
+pdf('~/symlinks/hzone/Methylation_Analyses/figures/20250411_Raw_Thresholds.pdf',height=6,width=4)
+ggarrange(cg_thresh,hz_thresh,common.legend = TRUE,nrow=3)
 dev.off()
 
 #save frame 
-write.table(rfdat,file='RF-Input-250107.txt',quote=F,sep='\t',row.names=F)
+write.table(rfdat,file='RF-Input-250411.txt',quote=F,sep='\t',row.names=F)
 
 #output correlations among variables
 cord = NULL
-xps = c('HZ','CG','WGBS')
+xps = c('HZ','CG')
 for (xp in xps){
   d1 = rfdat %>% filter(Subset == xp & variable == 'Mean')
   np = d1 %>% 
@@ -192,23 +186,21 @@ for (xp in xps){
   cord = rbind(cord,x)
 }
 
-pdf('20250107_Correlations_RF_Input.pdf',height=6,width=12)
-ggarrange(WGBS_cor,CG_cor,HZ_cor,labels=c('ComGar.WGBS','ComGar.RRBS','HybZon.RRBS'),nrow=1)
+pdf('~/symlinks/hzone/Methylation_Analyses/figures/20250411_Correlations_RF_Input.pdf',height=6,width=12)
+ggarrange(CG_cor,HZ_cor,labels=c('ComGar.RRBS','HybZon.RRBS'),nrow=1)
 dev.off()
 
-write.table(cord,file='20250107_Correlations_RF_Input.txt',quote=F,sep='\t',row.names=F)
+write.table(cord,file='~/symlinks/hzone/Methylation_Analyses/figures/20250411_Correlations_RF_Input.txt',quote=F,sep='\t',row.names=F)
 
 ```
 
-## Run RF & XGB
-
-Once the data is prepared, grow the forests: 
+## Run models
 
 ```R
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
 .libPaths('~/mambaforge/envs/tidymodels/lib/R/library')
-setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept/RF_JAN25')
+setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504/RFS_202504/')
 #### Randomforest Classification
 library(tidymodels)
 library(GGally)
@@ -229,10 +221,10 @@ cores <- 5
 cl <- makePSOCKcluster(cores)
 registerDoParallel(cl)
 
-dats <- read.table('RF-Input-250107.txt',header=T)
+dats <- read.table('RF-Input-250411.txt',header=T)
 type = args[1]  #e.g. Binary,Regression
 vari = args[2] #e.g. Mean,Max
-xp = args[3] #subset experiment, CG WGBS HZ
+xp = args[3] #subset experiment, CG HZ
 iter = args[4] #iteration
 
 dat = dats %>% filter(variable == vari & Subset == xp)
@@ -314,6 +306,8 @@ if (type == 'Regression') {
 } else {
   cat('Response type is Binary, using classification engines\n')
   rf_fit = NULL
+  rf_vi = NULL
+  rf_pred = NULL
   #boosted trees
   xgb_mod = boost_tree(trees = tune(),min_n = tune(),mtry = tune(),learn_rate = tune()) %>% set_engine("xgboost",importance="permutation") %>% set_mode("classification")
   xgb_wf <- workflow(mc_recipe, xgb_mod)
@@ -352,7 +346,32 @@ write.table(preddf,file=paste0('results/',type,'_',vari,'_',xp,'_',iter,'_PRED.t
 
 ```
 
-Launch:
+Prepare the sbatch:
+
+```bash
+#!/bin/bash
+
+#SBATCH --get-user-env
+#SBATCH --mail-user=merondun@bio.lmu.de
+#SBATCH --clusters=biohpc_gen
+#SBATCH --partition=biohpc_gen_normal
+#SBATCH --cpus-per-task=5
+#SBATCH --time=48:00:00
+
+T=$1
+V=$2
+S=$3
+I=$4
+
+echo "Running Randomforest.R with: Type=$T, Variable=$V, Subset=$S, Iteration=$I"
+
+Rscript Randomforest.R $T $V $S $I
+
+```
+
+
+
+Submit the many loops with:
 
 ```bash
 for a in $(cat Types.list); do  for b in $(cat Variables.list); do for c in $(cat Subsets.list); do for d in $(cat Iterations.list); do  sbatch -J ${a}_${b}_${c}_${d} randomforest.sh $a $b $c $d;  done;  done; done; done
@@ -367,21 +386,20 @@ mergem Class*PRED* > Classification_Predictions.txt
 mergem Regre*PRED* > Regression_Predictions.txt
 ```
 
-## Plot
-
-And plot results:
+## Plot Results
 
 ```R
 .libPaths('~/mambaforge/envs/r/lib/R/library')
-setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept/RF_JAN25/results')
+setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504/RFS_202504/results')
+setwd('G:/My Drive/Research/Crow_Hybrid_Epigenetics/rf/2025_04/')
 #### Plot decision tree results
 library(tidyverse)
 library(viridis)
 library(forcats)
 library(ggpubr)
 library(rstatix)
-library(gmodels)
 library(RColorBrewer)
+library(gmodels)
 
 #evaluate fit
 fit = read.table('Master.fit',header=T,sep='\t') %>% select(-c(Subset.1))
@@ -390,11 +408,30 @@ fs = fit %>% group_by(Subset,Response,Type,Metric) %>%
             hi = ci(Estimate)[2],
             lo = ci(Estimate)[3],
             sd = ci(Estimate)[4])
+
+# Subset Response Type       Metric     mean     hi     lo        sd
+# <chr>  <chr>    <chr>      <chr>     <dbl>  <dbl>  <dbl>     <dbl>
+#   1 CG     Max      Classified accuracy 0.800  0.798  0.803  0.000507 
+# 2 CG     Max      Classified roc_auc  0.682  0.674  0.690  0.00178  
+# 3 CG     Max      Regression rmse     0.370  0.369  0.372  0.000620 
+# 4 CG     Max      Regression rsq      0.102  0.101  0.104  0.000720 
+# 5 CG     Mean     Classified accuracy 0.800  0.800  0.801  0.000127 
+# 6 CG     Mean     Classified roc_auc  0.704  0.700  0.709  0.00105  
+# 7 CG     Mean     Regression rmse     0.243  0.241  0.245  0.000831 
+# 8 CG     Mean     Regression rsq      0.194  0.189  0.198  0.00171  
+# 9 HZ     Max      Classified accuracy 0.800  0.800  0.800  0.0000969
+# 10 HZ     Max      Classified roc_auc  0.644  0.631  0.657  0.00299  
+# 11 HZ     Max      Regression rmse     0.292  0.291  0.293  0.000404 
+# 12 HZ     Max      Regression rsq      0.0964 0.0920 0.101  0.00171  
+# 13 HZ     Mean     Classified accuracy 0.800  0.800  0.800  0        
+# 14 HZ     Mean     Classified roc_auc  0.663  0.645  0.682  0.00434  
+# 15 HZ     Mean     Regression rmse     0.167  0.164  0.171  0.00129  
+# 16 HZ     Mean     Regression rsq      0.0794 0.0791 0.0798 0.000132 
+
 fs = fs %>% 
-  mutate(Subset = gsub('CG','ComGar.RRBS',Subset),
-         Subset = gsub('WGBS','ComGar.WGBS',Subset),
-         Subset = gsub('HZ','HybZon.RRBS',Subset))
-fs$Subset <- factor(fs$Subset,levels=c('ComGar.WGBS','ComGar.RRBS','HybZon.RRBS'))
+  mutate(Subset = gsub('CG','ComGar',Subset),
+         Subset = gsub('HZ','HybZon',Subset))
+fs$Subset <- factor(fs$Subset,levels=c('ComGar','HybZon'))
 fs %>% filter(Response == 'Mean' & Type == 'Regression' & Metric == 'rsq')
 fpr = fs %>% 
   filter(Type == 'Regression') %>% 
@@ -424,7 +461,7 @@ fpa = ggarrange(fpr,fpc,widths = c(0.75,1.2))
 fpa
 
 #save
-pdf('20250107_RF_Fit.pdf',height=5,width=8)
+pdf('~/symlinks/hzone/Methylation_Analyses/figures/20250414_RF_Fit.pdf',height=5,width=8)
 fpa
 dev.off()
 
@@ -441,32 +478,36 @@ vi = vi %>% group_by(Subset,Response,Engine,Type,Iteration) %>% mutate(Importanc
                                                                        Variable = gsub('TajimaD',"Tajima's D",Variable),
                                                                        Variable = gsub("FuLiD","Fu & Li's D*",Variable))
 vis = vi %>% group_by(Subset,Response,Type,Variable) %>% 
-  filter(Response == 'Mean') %>% 
   summarize(mean = ci(PctImp)[1],
             hi = ci(PctImp)[2],
             lo = ci(PctImp)[3],
             sd = ci(PctImp)[4])
 vis = vis %>% 
-  mutate(Subset = gsub('CG','ComGar.RRBS',Subset),
-         Subset = gsub('WGBS','ComGar.WGBS',Subset),
-         Subset = gsub('HZ','HybZon.RRBS',Subset))
-vis$Subset <- factor(vis$Subset,levels=c('ComGar.WGBS','ComGar.RRBS','HybZon.RRBS'))
+  mutate(Subset = gsub('CG','ComGar',Subset),
+         Subset = gsub('HZ','HybZon',Subset))
+vis$Subset <- factor(vis$Subset,levels=c('ComGar','HybZon'))
 #find most important overall, we will sort by this
-imps = vi %>% filter(Response == 'Mean' & Type == 'Regression') %>% group_by(Response,Type,Variable) %>% summarize(mean=mean(PctImp)) %>% arrange(desc(mean)) %>% mutate(ORDER = row_number())
+imps = vi %>% group_by(Response,Type,Variable) %>% summarize(mean=mean(PctImp)) %>% arrange(desc(mean)) %>% mutate(ORDER = row_number())
 vis = left_join(vis,imps %>% select(Response,Type,Variable,ORDER))
 vip = vis %>% 
-  filter(Response == 'Mean' & Type == 'Regression') %>% 
+  #filter(Response == 'Mean' & Type == 'Regression') %>% 
   mutate(NewOrd = fct_reorder(Variable,ORDER,.desc = TRUE)) %>% 
   ggplot(aes(y=NewOrd,x=mean,fill=Subset))+
   geom_bar(stat='identity',position=position_dodge(width=0.9))+
   geom_errorbar(aes(xmin=ifelse(mean-sd<0,0,mean-sd),xmax=mean+sd),width=0.5,position=position_dodge(width=0.9))+
-  scale_fill_manual(values=brewer.pal(3,'Set2'))+
+  scale_fill_manual(values=c('#b8de29','#33638d'))+
   theme_bw()+
   #theme(legend.position='none')+
   ylab('')+xlab('Permutation Importance')+
-  #facet_grid(.~Response,scales='free')+
+  facet_grid(Type~Response,scales='free')+
   theme(axis.text.x=element_text(angle=45,vjust=1,hjust=1))
 vip
+
+#save
+pdf('20250414_RF_VIP_Regression-All.pdf',height=6,width=6)
+vip 
+dev.off()
+
 
 viS = vi %>% group_by(Subset,Response,Type,Variable,Engine) %>% 
   #filter(Response == 'Mean' & Type == 'Regression') %>% 
@@ -474,7 +515,7 @@ viS = vi %>% group_by(Subset,Response,Type,Variable,Engine) %>%
             lo = ci(PctImp)[2],
             hi = ci(PctImp)[3],
             se = ci(PctImp)[4])
-write.table(viS,file='20250107_Permutation_Importance.txt',quote=F,sep='\t',row.names=F)
+write.table(viS,file='~/symlinks/hzone/Methylation_Analyses/figures/20250414_Permutation_Importance.txt',quote=F,sep='\t',row.names=F)
 
 # Across all experiments, as reported in main text
 vi %>% group_by(Variable) %>% 
@@ -484,23 +525,23 @@ vi %>% group_by(Variable) %>%
             hi = ci(PctImp)[3],
             se = ci(PctImp)[4])
 
-# Variable               mean     lo     hi      se
-# <chr>                 <dbl>  <dbl>  <dbl>   <dbl>
-#   1 Chromosomal Position 0.0542 0.0478 0.0605 0.00320
-# 2 Chromosome Length    0.0731 0.0670 0.0792 0.00307
-# 3 Dxy                  0.104  0.0919 0.116  0.00612
-# 4 FST                  0.0238 0.0202 0.0274 0.00182
-# 5 Fu & Li's D*         0.0558 0.0514 0.0601 0.00218
-#  6 GC-Content           0.284  0.260  0.308  0.0121 
-#  7 Haplotype Diversity  0.120  0.109  0.132  0.00598
-#  8 Region_Intergenic    0.0315 0.0272 0.0357 0.00214
-#  9 Region_Intron        0.0251 0.0210 0.0292 0.00207
-# 10 Region_Promoter      0.145  0.111  0.178  0.0168 
-# 11 Region_Repeat        0.0168 0.0122 0.0215 0.00231
-# 12 Tajima's D           0.0674 0.0616 0.0732 0.00291
+# Variable                 mean       lo      hi       se
+# <chr>                   <dbl>    <dbl>   <dbl>    <dbl>
+#   1 Chromosomal Position 0.0556   0.0492   0.0620  0.00289 
+# 2 Chromosome Length    0.0728   0.0653   0.0803  0.00341 
+# 3 Dxy                  0.0959   0.0638   0.128   0.0146  
+# 4 FST                  0.0172   0.0110   0.0234  0.00283 
+# 5 Fu & Li's D*         0.0480   0.0390   0.0570  0.00409 
+#  6 GC-Content           0.251    0.214    0.287   0.0166  
+#  7 Haplotype Diversity  0.0895   0.0669   0.112   0.0103  
+#  8 Region_Intergenic    0.0276   0.0200   0.0352  0.00345 
+#  9 Region_Intron        0.0179   0.0115   0.0243  0.00290 
+# 10 Region_Promoter      0.267    0.219    0.316   0.0219  
+# 11 Region_Repeat        0.000589 0.000146 0.00103 0.000201
+# 12 Tajima's D           0.0566   0.0429   0.0704  0.00625 
 
 #save
-pdf('20250107_RF_VIP_Regression.pdf',height=6,width=6)
+pdf('~/symlinks/hzone/Methylation_Analyses/figures/20250414_RF_VIP_Regression.pdf',height=6,width=6)
 vip 
 dev.off()
 
@@ -512,13 +553,12 @@ ALL = vi %>% group_by(Subset,Response,Type,Variable) %>%
             lo = ci(PctImp)[3],
             sd = ci(PctImp)[4])
 ALL = ALL %>% 
-  mutate(Subset = gsub('CG','ComGar.RRBS',Subset),
-         Subset = gsub('WGBS','ComGar.WGBS',Subset),
-         Subset = gsub('HZ','HybZon.RRBS',Subset))
-ALL$Subset <- factor(ALL$Subset,levels=c('ComGar.WGBS','ComGar.RRBS','HybZon.RRBS'))
+  mutate(Subset = gsub('CG','ComGar',Subset),
+         Subset = gsub('HZ','HybZon',Subset))
+ALL$Subset <- factor(ALL$Subset,levels=c('ComGar','HybZon'))
 #find most important overall, we will sort by this
 ALL = left_join(ALL,imps %>% ungroup %>% select(Variable,ORDER))
-ALL$Type = factor(ALL$Type,levels=c('Regression','Classification'))
+ALL$Type = factor(ALL$Type,levels=c('Regression','Classified'))
 ALLp = ALL %>% 
   mutate(NewOrd = fct_reorder(Variable,ORDER,.desc = TRUE)) %>% 
   ggplot(aes(y=NewOrd,x=mean,fill=Subset))+
@@ -533,7 +573,7 @@ ALLp = ALL %>%
 ALLp
 
 #save
-pdf('20250107_RF_VIP_All.pdf',height=6,width=10)
+pdf('~/symlinks/hzone/Methylation_Analyses/figures/20250414_RF_VIP_All.pdf',height=6,width=10)
 ALLp
 dev.off()
 
@@ -562,10 +602,101 @@ confclass %>% group_by(Predicted,Truth,Engine,Response,Subset) %>%
 
 
 #save
-png('20250107_RF_Predictions.png',height=5,width=3.5,res=600,units='in')
+png('~/symlinks/hzone/Methylation_Analyses/figures/20250414_RF_Predictions.png',height=5,width=3.5,res=600,units='in')
 cp
 dev.off()
 
+```
+
+
+
+## Rho: 5mC PopGen Correlations
+
+```bash
+.libPaths('~/mambaforge/envs/r/lib/R/library')
+setwd('/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504/RFS_202504')
+#### PopGen ~ 5mC spearman correlations
+library(tidyverse)
+library(viridis)
+library(forcats)
+library(ggpubr)
+library(rstatix)
+library(gmodels)
+library(RColorBrewer)
+
+#plot some of the interesting comparisons
+rf = read_tsv('RF-Input-250411.txt')
+
+### Correlations: 5mC / genetic variation
+cat('Working on correlations for genetic variation, 5mc \n')
+rf1 = rf %>% filter(variable == 'Mean') %>% select(chr,GenStart,GenEnd,raw,HapD,FuLiD,TajimaD,Dxy,FST,Subset)
+rf1 = rf1 %>% mutate(Focal_Region = ifelse(chr == '18' & GenStart > 8070001 & GenStart < 10070000,'Focal','Undiverged'))
+rf2 = rf1 %>%
+  pivot_longer(!c(chr,GenStart,GenEnd,raw,Subset,Focal_Region)) %>%
+  na.omit()
+xps = c('CG','HZ','WGBS')
+
+fullboots = NULL
+options(dplyr.summarise.inform = FALSE)
+set.seed(123)
+B <- 999 # number of bootstrap replicates
+
+for (xp in xps) {
+  for (vr in unique(rf2$name)) {
+    cat('Working on Experiment & Variable: ',xp,' ',vr,'\n')
+    bd = rf2 %>% filter(Subset == xp & name == vr)
+    n = bd %>% filter(Focal_Region == 'Focal') %>% nrow
+    bdat=NULL
+    ## Run the bootstrap procedure:
+    for (b in 1:B) {
+      cat('Iteration: ',b,'\n')
+      d1 = bd %>% group_by(Focal_Region) %>% slice_sample(n=n,replace=TRUE) %>% summarize(cor = cor(raw,value,method='spearman'))
+      bdat = rbind(bdat,d1 )
+    }
+    bdat$Experiment = xp
+    bdat$Variable = vr
+    names(bdat) = c('Focal_Region','Boots','Experiment','Variable')
+    fullboots = rbind(fullboots,bdat)
+  }
+}
+
+write.table(fullboots,file='Genetic5mC_Bootstraped_Results-2020250411.txt',quote=F,sep='\t',row.names=F)
+fullboots = read.table('Genetic5mC_Bootstraped_Results-2020250411.txt',header=TRUE)
+
+#add counts for windows 
+features = rf2 %>% group_by(Subset,Focal_Region,name) %>% count()
+names(features)= c('Experiment','Focal_Region','Variable')
+
+cdm = fullboots %>% 
+  mutate(Experiment = gsub('CG','ComGar',Experiment),
+         Experiment = gsub('HZ','HybZon',Experiment))
+cdm$Experiment <- factor(cdm$Experiment,levels=c('HybZon','ComGar'))
+#calculate CIs
+cis = cdm %>% 
+  group_by(Experiment,Variable,Focal_Region) %>% 
+  summarize(LowerBound = quantile(Boots,0.025), #can change based on your significance threshold 
+            UpperBound = quantile(Boots,0.975))
+cis = cis %>% group_by(Experiment,Variable) %>% 
+  mutate(Signif = ifelse(LowerBound > 0 | UpperBound < 0,'*','n.s.'))
+
+genp = cdm %>% 
+  ggplot(aes(x=Variable,y=Boots,fill=Focal_Region))+
+  geom_boxplot(alpha=0.75)+
+  geom_text(data=cis,aes(x=Variable,col=Focal_Region,group=Focal_Region,y=Inf,label=Signif,size=Signif),col='black',vjust=1.5,position=position_dodge(width=1))+
+  scale_size_manual(values=c(6,4))+
+  scale_fill_manual(values=c('darkorchid2','grey60'))+
+  facet_grid(Experiment~.,scales='free')+
+  geom_hline(yintercept=0,lty=2)+
+  ylab("Spearman's Rho: Taxon Methylation Divergence") + xlab('')+
+  scale_y_continuous(expand = expansion(mult = .25)) + #expand y axis slightly 
+  theme_bw()
+genp
+
+pdf('~/symlinks/hzone/Methylation_Analyses/figures/20250414_GenCorBootBootstraps.pdf',height=4,width=5)
+genp
+dev.off()
+
+write.table(cis,file='../../Correlations_95CIs.txt',quote=F,sep='\t',row.names=F)
 ```
 
 

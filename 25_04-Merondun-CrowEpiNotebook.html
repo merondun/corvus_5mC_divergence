@@ -11,9 +11,9 @@
 
 <meta name="author" content="Justin Merondun" />
 
-<meta name="date" content="2025-01-13" />
+<meta name="date" content="2025-04-18" />
 
-<title>Crow hybrid zone epigenetics</title>
+<title>DNA methylation reflects cis-genetic differentiation across the European crow hybrid zone</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1463,12 +1463,6 @@ font-size: 0.90em;
 .tocify .list-group-item {
 border-radius: 0px;
 }
-.tocify-subheader {
-display: inline;
-}
-.tocify-subheader .tocify-item {
-font-size: 0.95em;
-}
 </style>
 
 
@@ -1497,18 +1491,20 @@ font-size: 0.95em;
 
 
 
-<h1 class="title toc-ignore">Crow hybrid zone epigenetics</h1>
+<h1 class="title toc-ignore">DNA methylation reflects cis-genetic
+differentiation across the European crow hybrid zone</h1>
 <h4 class="author">Justin Merondun</h4>
-<h4 class="date">2025-01-13</h4>
+<h4 class="date">2025-04-18</h4>
 
 </div>
 
 
-<div id="crow-hybrid-zone-epigenetics" class="section level1">
-<h1><strong>Crow hybrid zone epigenetics</strong></h1>
+<div id="dna-methylation-reflects-cis-genetic-differentiation-across-the-european-crow-hybrid-zone" class="section level1">
+<h1>DNA methylation reflects cis-genetic differentiation across the
+European crow hybrid zone</h1>
 <p>This study comprises 58 unique methylation libraries spanning a
-common garden experiment (ComGar.) for RRBS and WGBS data, a hybrid zone
-experiment (HybZon.), and 28 illumina resequencing libraries. Sample
+common garden experiment (ComGar) for RRBS and WGBS data, a hybrid zone
+experiment (HybZon), and 28 illumina resequencing libraries. Sample
 details can be found in Supplementary Table 1.</p>
 <div id="file-paths" class="section level2">
 <h2>File Paths</h2>
@@ -2862,8 +2858,8 @@ dev.off()</code></pre>
 </div>
 <div id="mc-processing" class="section level1">
 <h1>5mC Processing</h1>
-<div id="comgar.rrbs" class="section level2">
-<h2>ComGar.RRBS</h2>
+<div id="comgar" class="section level2">
+<h2>ComGar</h2>
 <p>Script that will take raw data and extract it, NO deduplication
 because it’s RRBS data.</p>
 <p>Prepare genome for mapping:</p>
@@ -3002,8 +2998,8 @@ done
 cat counts/header.txt counts/*.count &gt; 5mC_Counts.txt
 rm -rf counts</code></pre>
 </div>
-<div id="hybzon.rrbs" class="section level2">
-<h2>HybZon.RRBS</h2>
+<div id="hybzon" class="section level2">
+<h2>HybZon</h2>
 <p>Our PE data from the Hybrid Zone will be treated largely similar,
 except it is paired end, so will require trimming from both sides.</p>
 <p>And full pipeline, we have multiple libraries for each sample, so we
@@ -3359,11 +3355,337 @@ png(&#39;Sample_Coverage-Bias.png&#39;,units=&#39;in&#39;,height=5,width=12,res 
 samps
 dev.off()</code></pre>
 </div>
+<div id="no-cutsite-or-snp-filtering" class="section level2">
+<h2>No Cutsite or SNP Filtering</h2>
+<p>ComGarRRBS:</p>
+<pre class="bash"><code>#!/bin/bash
+
+#SBATCH --get-user-env
+#SBATCH --mail-user=merondun@bio.lmu.de
+#SBATCH --clusters=biohpc_gen
+#SBATCH --partition=biohpc_gen_production
+#SBATCH --cpus-per-task=10
+#SBATCH --mem-per-cpu=4763mb
+#SBATCH --time=48:00:00
+
+SCRATCH=tmp/$SLURM_JOB_ID
+mkdir tmp
+mkdir $SCRATCH
+
+genomedir=/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Genomes/Corvus_ASM73873v5
+genome=${genomedir}/GCF_000738735.5_ASM73873v5_genomic.fa
+chrsbed=${genomedir}/GCF_000738735.5_ASM73873v5_genomic.CHRS.bed
+
+#working directories
+rawdataWGBS=/dss/dsslegfs01/pr53da/pr53da-dss-0018/rawdata/Bisulfite-Seq/WGBS
+rawdataRRBS=/dss/dsslegfs01/pr53da/pr53da-dss-0018/rawdata/Bisulfite-Seq/RRBS
+basedir=/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/bams
+outdir=${basedir}/cg
+workdir=${basedir}/cg
+
+#positional arguments
+RUN=$1
+
+echo &quot;Working on ${RUN}&quot;
+
+#Extract methylation
+bismark_methylation_extractor --parallel 7 --ignore 2 --ignore_3prime 1 --gzip --bedgraph --buffer_size 20G --cytosine_report --genome_folder ${genomedir} --output ${outdir} ${workdir}/${RUN}.SE_trimmed_bismark_bt2.bam
+</code></pre>
+<p>HybZonRRBS:</p>
+<pre class="bash"><code>#!/bin/bash
+
+#SBATCH --get-user-env
+#SBATCH --mail-user=merondun@bio.lmu.de
+#SBATCH --clusters=biohpc_gen
+#SBATCH --partition=biohpc_gen_production
+#SBATCH --cpus-per-task=10
+#SBATCH --mem-per-cpu=4763mb
+#SBATCH --time=48:00:00
+
+genomedir=/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Genomes/Corvus_ASM73873v5
+genome=${genomedir}/GCF_000738735.5_ASM73873v5_genomic.fa
+chrsbed=${genomedir}/GCF_000738735.5_ASM73873v5_genomic.CHRS.bed
+
+#working directories
+rawdataWGBS=/dss/dsslegfs01/pr53da/pr53da-dss-0018/rawdata/Bisulfite-Seq/WGBS
+rawdataRRBS=/dss/dsslegfs01/pr53da/pr53da-dss-0018/rawdata/Bisulfite-Seq/RRBS
+basedir=/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/bams
+outdir=${basedir}/hz
+workdir=${basedir}/hz
+
+#positional arguments
+RUN=$1
+
+echo &quot;Working on ${RUN}&quot;
+
+#Extract methylation
+bismark_methylation_extractor --parallel 7 --ignore 2 --ignore_3prime 1 --ignore_r2 2 --ignore_3prime_r2 1 --gzip --bedgraph --buffer_size 20G --cytosine_report --genome_folder ${genomedir} --output ${outdir} ${workdir}/${RUN}.R1_val_1_bismark_bt2_pe.bam
+</code></pre>
+<p>And full for ComGarWGBS:</p>
+<pre class="bash"><code>#!/bin/bash
+
+#SBATCH --get-user-env
+#SBATCH --mail-user=merondun@bio.lmu.de
+#SBATCH --clusters=biohpc_gen
+#SBATCH --partition=biohpc_gen_production
+#SBATCH --cpus-per-task=10
+#SBATCH --mem-per-cpu=4763mb
+#SBATCH --time=48:00:00
+
+TRASH=$(realpath tmp/$SLURM_JOB_ID)
+mkdir -p $TRASH
+
+genomedir=/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Genomes/Corvus_ASM73873v5
+genome=${genomedir}/GCF_000738735.5_ASM73873v5_genomic.fa
+chrsbed=${genomedir}/GCF_000738735.5_ASM73873v5_genomic.CHRS.bed
+
+#working directories
+rawdataWGBS=/dss/dsslegfs01/pr53da/pr53da-dss-0018/rawdata/Bisulfite-Seq/WGBS
+rawdataRRBS=/dss/dsslegfs01/pr53da/pr53da-dss-0018/rawdata/Bisulfite-Seq/RRBS
+basedir=/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/bams
+outdir=${basedir}/wgbs
+workdir=${basedir}/tmp
+
+#positional arguments
+RUN=$1
+
+mkdir -p ${workdir}
+mkdir -p ${outdir}
+
+echo &quot;Working on ${RUN}&quot;
+
+cat ${rawdataWGBS}/${RUN}*__R1__*fastq.gz &gt; $TRASH/${RUN}.R1.fastq.gz
+cat ${rawdataWGBS}/${RUN}*__R2__*fastq.gz &gt; $TRASH/${RUN}.R2.fastq.gz
+
+cd $workdir
+
+#Trim adapters
+trim_galore --fastqc -j 10 --clip_r1 9 --clip_r2 9 --three_prime_clip_R2 1 --paired --quality 20 --output_dir ${workdir} ${TRASH}/${RUN}.R1.fastq.gz ${TRASH}/${RUN}.R2.fastq.gz
+
+#Map reads
+bismark --parallel 7 --output_dir ${workdir} --genome ${genomedir} -1 ${workdir}/${RUN}.R1_val_1.fq.gz -2 ${workdir}/${RUN}.R2_val_2.fq.gz
+
+#Deduplicate
+deduplicate_bismark --paired ${workdir}/${RUN}.R1_val_1_bismark_bt2_pe.bam --output_dir ${outdir}
+
+#Extract methylation
+bismark_methylation_extractor --parallel 7 --gzip --bedgraph --ignore_3prime_r2 1 --ignore_r2 3 --buffer_size 20G --cytosine_report --genome_folder ${genomedir} --output ${outdir} ${outdir}/${RUN}.R1_val_1_bismark_bt2_pe.deduplicated.bam
+</code></pre>
+<p>Cleanup:</p>
+<pre class="bash"><code>rm *bt2.txt.gz *bt2_pe.txt.gz *splitting* *M-bias* *bedGraph* *CpG_report* *context*</code></pre>
+<p>Now we just have <code>.bam</code> files and <code>.cov.gz</code>
+files for analysis.</p>
+</div>
 </div>
 <div id="mc-dmp-analyses" class="section level1">
 <h1>5mC DMP Analyses</h1>
-<div id="comgar.rrbs-1" class="section level2">
-<h2>ComGar.RRBS</h2>
+<div id="overlap-estimate-dmps" class="section level2">
+<h2>Overlap, Estimate DMPs</h2>
+<pre class="r"><code>#!/usr/bin/env Rscript
+args = commandArgs(trailingOnly=TRUE)
+
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504&#39;)
+.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
+### Overlap CpGs
+library(DSS)
+library(dplyr)
+library(tidyr)
+library(reshape2)
+library(matrixStats)
+library(ggplot2)
+library(data.table)
+
+xp = args[1]
+
+#grab all files
+files &lt;- list.files(path=xp, pattern=&quot;*.cov.gz&quot;, full.names=TRUE, recursive=FALSE)
+allnames &lt;- NULL
+
+#loop through them..
+for (samp in files) {
+  
+  cat(&#39;Reading in file: &#39;,samp,&#39;\n&#39;)
+  #read data
+  ztab &lt;- gzfile(samp,&#39;rt&#39;);
+  tab &lt;- read.table(ztab,header=F);
+  #only keep positions with &gt;= 10x
+  tab &lt;- subset(tab, (V5 + V6) &gt;= 10)
+  tab$site &lt;- paste0(tab$V1,&#39;_&#39;,tab$V2)
+  tab$V4 &lt;- tab$V4/100
+  
+  #extract name which will be our new variable. Lots of file suffix across xps ...
+  name &lt;- gsub(&#39;..*/&#39;,&#39;&#39;,samp)
+  name &lt;- gsub(&#39;.CpG_5mC.cov.gz&#39;,&#39;&#39;,name)
+  name &lt;- gsub(&#39;.SE_trimmed_bismark_bt2.bismark.cov.gz&#39;,&#39;&#39;,name)
+  name &lt;- gsub(&#39;.R1_val_1_bismark_bt2_pe.bismark.cov.gz&#39;,&#39;&#39;,name)
+  
+  #grab only site / countM / countU / %5mC
+  tab2 &lt;- tab[,c(7,5,6,4)]
+  names(tab2) &lt;- c(&#39;site&#39;,paste0(&#39;Cs_&#39;,name),paste0(&#39;Ts_&#39;,name),name);
+  
+  cat(&#39;Saved to variable: &#39;,name,&#39;\n&#39;)
+  #assign it to a new variable
+  assign(paste0(name),tab2)
+  
+  #add this sample to our total list
+  allnames &lt;- unique(c(allnames,name))
+}
+
+#get names
+vars &lt;- mget(allnames)
+# merge the points, keeping all
+master &lt;- Reduce(function(x,y) merge(x = x, y = y, by=c(&#39;site&#39;),all=TRUE),vars)
+
+write.table(master,file=paste0(xp,&#39;/&#39;,xp,&#39;_Step1.txt&#39;),sep=&#39;\t&#39;,quote=F,row.names=FALSE)
+master &lt;- read.table(paste0(xp,&#39;/&#39;,xp,&#39;_Step1.txt&#39;),header=TRUE)
+
+if (xp == &quot;CG&quot;) {
+  covdat &lt;- master %&gt;% filter(rowSums(is.na(select(., starts_with(&quot;Cs_&quot;)))) &lt;= 3)
+  covdat &lt;- covdat %&gt;%
+    mutate(
+      divergence_Species   = rowMeans(select(covdat, matches(&quot;^D_&quot;)), na.rm = TRUE) - rowMeans(select(covdat, matches(&quot;^S_&quot;)), na.rm = TRUE),
+      divergence_StageCHK  = rowMeans(select(covdat, matches(&quot;_CHK_&quot;)), na.rm = TRUE) - rowMeans(select(covdat, matches(&quot;_ADL_&quot;)), na.rm = TRUE),
+      divergence_StageYRL  = rowMeans(select(covdat, matches(&quot;_YRL_&quot;)), na.rm = TRUE) - rowMeans(select(covdat, matches(&quot;_ADL_&quot;)), na.rm = TRUE),
+      divergence_Sex       = rowMeans(select(covdat, matches(&quot;_M$&quot;)), na.rm = TRUE) - rowMeans(select(covdat, matches(&quot;_F$&quot;)), na.rm = TRUE)
+    )
+} else if (xp == &quot;WGBS&quot;) {
+  covdat &lt;- master %&gt;% filter(rowSums(is.na(select(., starts_with(&quot;Cs_&quot;)))) == 0)
+  covdat &lt;- covdat %&gt;%
+    mutate(
+      divergence_Species   = rowMeans(select(covdat, matches(&quot;^D_&quot;)), na.rm = TRUE) - rowMeans(select(covdat, matches(&quot;^S_&quot;)), na.rm = TRUE),
+      divergence_TissueL  = rowMeans(select(covdat, matches(&quot;_BL_&quot;)), na.rm = TRUE) - rowMeans(select(covdat, matches(&quot;_M_&quot;)), na.rm = TRUE),
+      divergence_TissueM  = rowMeans(select(covdat, matches(&quot;_BL_&quot;)), na.rm = TRUE) - rowMeans(select(covdat, matches(&quot;_L_&quot;)), na.rm = TRUE),
+      divergence_Sex       = rowMeans(select(covdat, matches(&quot;_M$&quot;)), na.rm = TRUE) - rowMeans(select(covdat, matches(&quot;_F$&quot;)), na.rm = TRUE)
+    )
+} else if (xp == &quot;HZ&quot;) {
+  covdat &lt;- master %&gt;% filter(rowSums(is.na(select(., starts_with(&quot;Cs_&quot;)))) &lt;= 3)
+}
+
+covdat &lt;- covdat %&gt;%
+  mutate(Divergence = apply(select(covdat, matches(&quot;^D_|^S_|^H_&quot;)), 1, max, na.rm = TRUE) - 
+           apply(select(covdat, matches(&quot;^D_|^S_|^H_&quot;)), 1, min, na.rm = TRUE))
+
+# Total coverage and filtering
+setDT(covdat)
+covdat[, total := rowSums(.SD, na.rm = TRUE), .SDcols = patterns(&quot;^Cs_|^Ts_&quot;)]
+thresh &lt;- quantile(covdat$total, 0.99)
+keep &lt;- covdat[total &lt; thresh][, total := NULL]
+
+# Long-form with Cs and Ts
+setDT(keep)
+Cs &lt;- melt(keep, id.vars = &quot;site&quot;, measure.vars = patterns(&quot;^Cs_&quot;), variable.name = &quot;variable&quot;, value.name = &quot;Cs&quot;)
+Cs$variable &lt;- gsub(&quot;^Cs_&quot;, &quot;&quot;, Cs$variable)
+Ts &lt;- melt(keep, id.vars = &quot;site&quot;, measure.vars = patterns(&quot;^Ts_&quot;), variable.name = &quot;variable&quot;, value.name = &quot;Ts&quot;)
+Ts$variable &lt;- gsub(&quot;^Ts_&quot;, &quot;&quot;, Ts$variable)
+CT &lt;- merge(Cs, Ts, by = c(&quot;site&quot;, &quot;variable&quot;))
+
+#short-form for PCAs, etc, still has the divergence data
+fwrite(keep, paste0(xp,&#39;_PCA_Input-10x.txt&#39;), quote = FALSE, row.names = FALSE,col.names=TRUE)
+
+#now ready for model
+fwrite(CT, paste0(xp,&#39;_GLMM-10x.txt&#39;), quote = FALSE, row.names = FALSE,col.names=TRUE)
+
+# DSS DMP + DMR Detection
+alldats &lt;- read.csv(paste0(xp,&#39;_GLMM-10x.txt&#39;),header=TRUE)
+alldats$TC &lt;- alldats$Cs+alldats$Ts
+mdats &lt;- alldats[,c(&#39;site&#39;,&#39;TC&#39;,&#39;Cs&#39;,&#39;variable&#39;)]
+mdats &lt;- separate(mdats,site,c(&#39;chr&#39;,&#39;pos&#39;))
+names(mdats) &lt;- c(&#39;chr&#39;,&#39;pos&#39;,&#39;N&#39;,&#39;X&#39;,&#39;ID&#39;)
+mdats$pos &lt;- as.integer(mdats$pos)
+mdats &lt;- mdats %&gt;% arrange(chr,pos)
+
+allnames &lt;- NULL
+#loop through them..
+for (samp in unique(mdats$ID)) {
+  
+  var &lt;- mdats[grepl(samp,mdats$ID),][,1:4]
+  
+  cat(&#39;Saved to variable: &#39;,samp,&#39;\n&#39;)
+  #assign it to a new variable
+  assign(paste0(samp),var)
+  allnames &lt;- unique(c(allnames,samp))
+  
+}
+
+# Get names of samples, convert to BSobj
+vars &lt;- mget(allnames)
+BSobj = makeBSseqData(vars,c(allnames))
+BSobj
+
+# Import design
+design &lt;- read.table(paste0(xp,&#39;_Metadata.txt&#39;),header=TRUE)
+
+if (xp == &quot;CG&quot;) {
+  frm &lt;- &quot;~Species+Stage+Sex&quot;
+} else if (xp == &quot;WGBS&quot;) {
+  frm &lt;- &quot;~Species+Tissue+Sex&quot;
+} else if (xp == &quot;HZ&quot;) {
+  frm &lt;- &quot;~Chr18_Hybrid_Index+Year&quot;
+  design$Year &lt;- as.factor(design$Year)
+}
+
+design &lt;- design[match(allnames, design$variable), ]
+rownames(design) &lt;- design$variable
+
+DMLfit = DMLfit.multiFactor(BSobj, design=design, formula=as.formula(frm))
+vars &lt;- colnames(DMLfit$X)[-1]
+dmpdat &lt;- NULL
+dmrdat &lt;- NULL
+for (vari in vars) {
+  dats &lt;- DMLtest.multiFactor(DMLfit,coef=vari)
+  dats$var &lt;- vari
+  dmpdat &lt;- rbind(dmpdat,dats)
+  dmr &lt;- callDMR(dats,minCG=3,p.threshold=0.01,minlen=50)
+  dmr$var &lt;- vari
+  dmrdat &lt;- rbind(dmrdat,dmr)
+}
+
+#Save DMR
+write.table(dmrdat,file=paste0(xp,&#39;_DMRs-10x.txt&#39;),quote=F,sep=&#39;\t&#39;,row.names=F)
+write.table(dmpdat,file=paste0(xp,&#39;/&#39;,&#39;Step2.txt&#39;),quote=F,sep=&#39;\t&#39;,row.names=F)
+dmpdat &lt;- read.table(paste0(xp,&#39;/&#39;,&#39;Step2.txt&#39;),header=TRUE)
+
+# rename + reshape fdrs
+dmp &lt;- dmpdat %&gt;% rename(start = pos)
+d2 &lt;- dcast(dmp[,c(&#39;chr&#39;,&#39;start&#39;,&#39;fdrs&#39;,&#39;var&#39;)], chr + start ~ var, value.var = &#39;fdrs&#39;) %&gt;%
+  mutate(site = paste0(chr, &#39;_&#39;, start)) %&gt;% as.data.frame()
+dp &lt;- d2[!grepl(&#39;chr|start|site&#39;, names(d2))]
+names(dp) &lt;- paste0(&#39;fdrs_&#39;, names(dp))
+d3 &lt;- cbind(d2[grepl(&#39;chr|start|site&#39;, names(d2))], dp)
+
+# stat vals
+d4 &lt;- dcast(dmp[,c(&#39;chr&#39;,&#39;start&#39;,&#39;stat&#39;,&#39;var&#39;)], chr + start ~ var, value.var = &#39;stat&#39;) %&gt;%
+  mutate(site = paste0(chr, &#39;_&#39;, start)) %&gt;% as.data.frame()
+dp1 &lt;- d4[!grepl(&#39;chr|start|site&#39;, names(d4))]
+names(dp1) &lt;- paste0(&#39;stat_&#39;, names(dp1))
+d5 &lt;- cbind(d4[grepl(&#39;chr|start|site&#39;, names(d4))], dp1)
+write.table(d5, paste0(xp, &#39;_DSS.10x.stat&#39;), quote = FALSE, row.names = FALSE, sep = &#39;\t&#39;)
+
+# merge with PCA
+pca &lt;- read.csv(paste0(xp, &#39;_PCA_Input-10x.txt&#39;))
+pca3 &lt;- pca[!grepl(&#39;^Cs_|^Ts_&#39;, names(pca))]
+hzs &lt;- left_join(d3,pca3)
+hzm &lt;- hzs[grepl(&#39;^D_|^S_|^H_|fdrs|div|Div&#39;, names(hzs))]
+names(hzm) &lt;- paste0(names(hzm),&#39;.&#39;,xp)
+hzm1 &lt;- cbind(hzs[,c(&#39;site&#39;,&#39;chr&#39;,&#39;start&#39;)], hzm)
+write.table(hzm1, paste0(xp, &#39;_DSS.10x.txt&#39;), quote = FALSE, row.names = FALSE, sep = &#39;\t&#39;)
+</code></pre>
+<p>Just submit with an ol:</p>
+<pre class="bash"><code>#!/bin/bash
+
+#SBATCH --get-user-env
+#SBATCH --mail-user=merondun@bio.lmu.de
+#SBATCH --clusters=biohpc_gen
+#SBATCH --partition=biohpc_gen_highmem
+#SBATCH --cpus-per-task=2
+#SBATCH --time=24:00:00
+
+Rscript 1.Merge.R $1</code></pre>
+</div>
+<div id="including-comgar.wgbs" class="section level2">
+<h2>Including ComGar.WGBS</h2>
+<div id="comgar.rrbs" class="section level3">
+<h3>ComGar.RRBS</h3>
 <p>Import the bismark <code>cov.gz</code> files, filter for 10x coverage
 minimum and remove sites at the top 1% of the coverage distribution,
 calculate mean divergence between groups for factor variables, and use
@@ -3563,8 +3885,8 @@ names(cgm) &lt;- paste0(names(cgm),&#39;.cg&#39;)
 cgm1 &lt;- cbind(cgs[,c(&#39;site&#39;,&#39;chr&#39;,&#39;start&#39;)],cgm)
 write.table(cgm1,&#39;CG.DSS.BP-10x.txt&#39;,quote=F,row.names=FALSE,sep=&#39;\t&#39;)</code></pre>
 </div>
-<div id="comgar.wgbs-1" class="section level2">
-<h2>ComGar.WGBS</h2>
+<div id="comgar.wgbs-1" class="section level3">
+<h3>ComGar.WGBS</h3>
 <p>Import the bismark <code>cov.gz</code> files, filter for 10x coverage
 minimum and remove sites at the top 1% of the coverage distribution,
 calculate mean divergence between groups for factor variables, and use
@@ -3774,8 +4096,8 @@ names(wgbsm) &lt;- paste0(names(wgbsm),&#39;.wgbs&#39;)
 wgbsm1 &lt;- cbind(wgbss[,c(&#39;site&#39;,&#39;chr&#39;,&#39;start&#39;)],wgbsm)
 write.table(wgbsm1,&#39;WGBS.DSS.BP-10x.txt&#39;,quote=F,row.names=FALSE,sep=&#39;\t&#39;)</code></pre>
 </div>
-<div id="hybzon.rrbs-1" class="section level2">
-<h2>HybZon.RRBS</h2>
+<div id="hybzon.rrbs" class="section level3">
+<h3>HybZon.RRBS</h3>
 <p>Import the bismark <code>cov.gz</code> files, filter for 10x coverage
 minimum and remove sites at the top 1% of the coverage distribution, and
 use DSS to estimate DMPs for Genetic Hybrid Index and Year effects.</p>
@@ -3966,11 +4288,394 @@ write.table(hzm1,&#39;HZ.DSS.BP-Parentals-YearChr18HI_10x.txt&#39;,quote=F,row.n
 hzm1 %&gt;% filter(chr == &#39;chr18&#39; &amp; start %in% c(10000910, 9048799, 9317485,9317486)) 
 </code></pre>
 </div>
+</div>
+<div id="more-dmps-on-chr18" class="section level2">
+<h2>More DMPs on Chr18?</h2>
+<pre class="r"><code>setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504&#39;)
+.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
+### Are DMPs enriched on chr18?
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggpubr)
+
+hz &lt;- read.table(&#39;HZ_DSS.10x.txt&#39;,header=TRUE)
+hz_cands &lt;- hz %&gt;% filter(fdrs_Chr18_Hybrid_Index.HZ &lt; 0.01) %&gt;% select(chr,start) %&gt;% mutate(Experiment = &#39;HybZon&#39;)
+
+cg &lt;- read.table(&#39;CG_DSS.10x.txt&#39;,header=TRUE)
+cg_cands &lt;- cg %&gt;% filter(fdrs_SpeciesS.CG &lt; 0.01) %&gt;% select(chr,start) %&gt;% mutate(Experiment = &#39;ComGar&#39;)
+
+taxcands &lt;- rbind(hz_cands, cg_cands) %&gt;% filter(!grepl(&#39;scaf&#39;,chr)) %&gt;% as_tibble
+write_zero &lt;- taxcands %&gt;% mutate(end = start, start = start -1 ) %&gt;% select(chr,start,end,Experiment)
+write.table(write_zero,file=&#39;CG-HZ_DMPsTaxon.bed&#39;,quote=F,sep=&#39;\t&#39;,row.names=F,col.names = F)
+
+chr_ord &lt;- taxcands %&gt;% select(chr) %&gt;% unique %&gt;%  
+  mutate(chrs = gsub(&#39;[chr.A]&#39;, &#39;&#39;, chr),   # Remove &#39;chr&#39;, &#39;.&#39;, and &#39;A&#39;
+         chrs = as.numeric(gsub(&#39;Z&#39;, &#39;99&#39;, chrs))) %&gt;% arrange(chrs)
+taxcands$chr &lt;- factor(taxcands$chr,levels=chr_ord$chr)
+
+# Unadjusted 
+count_plot &lt;- taxcands %&gt;% 
+  ggplot(aes(y=chr,fill=Experiment))+
+  geom_bar()+
+  xlab(&#39;Count of Taxon DMPs&#39;)+ylab(&#39;&#39;)+
+  scale_fill_manual(values=c(&#39;#33638d&#39;,&#39;#b8de29&#39;))+
+  theme_bw(base_size=8)
+count_plot
+
+taxcounts &lt;- taxcands %&gt;% 
+  count(chr,Experiment)
+
+
+## correct for counts by the number of DMPs assayed by chromosome
+cg_counts &lt;- cg %&gt;% count(chr) %&gt;% filter(!grepl(&#39;MT|scaf&#39;,chr)) %&gt;% arrange(desc(n)) %&gt;% mutate(Experiment = &#39;ComGar&#39;)
+hz_counts &lt;- hz %&gt;% count(chr) %&gt;% filter(!grepl(&#39;MT|scaf&#39;,chr)) %&gt;% arrange(desc(n)) %&gt;% mutate(Experiment = &#39;HybZon&#39;)
+xp_counts &lt;- rbind(cg_counts,hz_counts)
+all_chrs &lt;- unique(xp_counts$chr)
+
+# init df
+binomial_results &lt;- data.frame()
+
+# loop xp &amp; chr
+for (exp in unique(taxcounts$Experiment)) {
+  exp_data &lt;- taxcounts %&gt;% 
+    filter(Experiment == exp) %&gt;% 
+    complete(chr = all_chrs, Experiment, fill = list(n = 0)) %&gt;% left_join(.,xp_counts %&gt;% dplyr::rename(chr_total = n)) %&gt;% 
+    mutate(gw_total = sum(chr_total),
+           expected_prop = chr_total / gw_total)
+  exp_total_dmps &lt;- sum(exp_data$n)
+  
+  for (chr in unique(exp_data$chr)) {
+    chr_dmps &lt;- exp_data %&gt;% filter(chr == !!chr) %&gt;% pull(n)
+    chr_expected_prop &lt;- exp_data %&gt;% filter(chr == !!chr) %&gt;% pull(expected_prop)
+    
+    # bin test
+    bin_test &lt;- binom.test(chr_dmps, exp_total_dmps, chr_expected_prop)
+    
+    result_row &lt;- data.frame(
+      Experiment = exp,
+      Chromosome = chr,
+      chr_DMPs = chr_dmps,
+      Total_DMPs = exp_total_dmps,
+      Expected_proportion = chr_expected_prop,
+      p_value = bin_test$p.value,
+      lower_CI = bin_test$conf.int[1],
+      upper_CI = bin_test$conf.int[2],
+      observed_proportion = bin_test$estimate
+    )
+    
+    binomial_results &lt;- bind_rows(binomial_results, result_row)
+  }
+}
+
+binomial_results &lt;- binomial_results %&gt;%
+  mutate(significant = (lower_CI &gt; Expected_proportion) )
+binomial_results$Chromosome &lt;- factor(binomial_results$Chromosome,levels=chr_ord$chr)
+write.table(binomial_results,file=&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250418_Binomial_Results.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
+
+binom_plot &lt;- binomial_results %&gt;%
+  ggplot(aes(y = Chromosome, color = Experiment)) +
+  
+  # Observed proportion and 95% CI
+  geom_point(aes(x = observed_proportion), size = 2) +
+  geom_errorbarh(aes(xmin = lower_CI, xmax = upper_CI), height = 0.2) +
+  
+  # Expected proportion
+  geom_point(aes(x = Expected_proportion), shape = 4, size = 2, stroke = 0.5, color = &quot;black&quot;) +
+  
+  # asterisk for significant deviations
+  geom_text(data = . %&gt;% filter(significant),
+            aes(x = max(upper_CI, Expected_proportion) + 0.005, label = &quot;*&quot;),  # nudge slightly right
+            color = &quot;black&quot;, size = 3) +
+  
+  facet_wrap(~ Experiment, scales = &quot;free_y&quot;) +
+  scale_color_manual(values=c(&#39;#33638d&#39;,&#39;#b8de29&#39;))+
+  labs(
+    x = &quot;Proportion of DMPs&quot;,
+    y = &quot;Chromosome&quot;
+  ) +
+  theme_bw(base_size = 8)
+binom_plot
+
+ggsave(ggarrange(count_plot,binom_plot,common.legend = TRUE),file=&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250418_DMP_Counts.pdf&#39;,height=5,width=6)
+
+</code></pre>
+</div>
+<div id="chrz-saturation" class="section level2">
+<h2>chrZ Saturation</h2>
+<pre class="r"><code>.libPaths(&#39;~/mambaforge/envs/tidymodels/lib/R/library&#39;)
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504/RFS_202504/&#39;)
+library(tidyverse)
+
+all &lt;- read.table(&#39;../Full-HZ-CG.DSS.BP-10x.Classified-Annotated-SNPless_20250410.txt&#39;,header=T)
+
+chr_z_sex &lt;- all %&gt;% filter(chr == &#39;chrZ&#39; &amp; Class == &#39;Sex&#39;) %&gt;% nrow
+total_sex &lt;- all %&gt;% filter(Class == &#39;Sex&#39;) %&gt;% nrow
+chr_z_CpGs &lt;- all %&gt;% filter(chr == &#39;chrZ&#39; &amp; DMP.CG != &#39;MISSING&#39;) %&gt;% nrow
+total_CpGs &lt;- all %&gt;% filter(DMP.CG != &#39;MISSING&#39;) %&gt;% nrow
+
+bin_test &lt;- binom.test(x = chr_z_sex, n = total_sex, p = chr_z_CpGs / total_CpGs)
+
+result_row &lt;- data.frame(
+  chr_Z_sex_DMPs = chr_z_sex,
+  total_sex_DMPs = total_sex, 
+  chr_Z_CpGs = chr_z_CpGs,
+  total_CpGs = total_CpGs,
+  Expected_proportion = chr_z_CpGs / total_CpGs,
+  p_value = bin_test$p.value,
+  lower_CI = bin_test$conf.int[1],
+  upper_CI = bin_test$conf.int[2],
+  observed_proportion = bin_test$estimate)
+result_row  
+
+# chr_Z_sex_DMPs total_sex_DMPs chr_Z_CpGs total_CpGs Expected_proportion      p_value   lower_CI
+# probability of success            163           2768      27890    1047318          0.02662993 5.741463e-20 0.05040697
+# upper_CI observed_proportion
+# probability of success 0.06831449          0.05888728
+</code></pre>
+</div>
+<div id="dmrs" class="section level2">
+<h2>DMRs</h2>
+<pre class="bash"><code> grep &#39;Chr18_&#39; HZ_DMRs-10x.txt | bedtools sort -i - &gt; taxonfocus/HZ_DMRs.taxon.bed
+ grep &#39;Species&#39; CG_DMRs-10x.txt | bedtools sort -i - &gt; taxonfocus/CG_DMRs.taxon.bed</code></pre>
+<p>in R:</p>
+<pre class="r"><code>setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504&#39;)
+.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
+### DMRs
+library(tidyverse)
+library(ggplot2)
+library(RColorBrewer)
+
+dmrs &lt;- read_tsv(&#39;DMRs.txt&#39;) %&gt;% filter(!grepl(&#39;scaf|MT&#39;,chr))
+dmrs %&gt;% count(var)
+dmrs &lt;- dmrs %&gt;% mutate(Experiment = case_when(
+  var == &#39;Chr18_Hybrid_Index&#39; ~ &#39;HybZon&#39;, 
+  grepl(&#39;Year&#39;,var) ~ &#39;HybZon&#39;, 
+  TRUE ~ &#39;ComGar&#39;
+)) 
+
+taxdmr &lt;- dmrs %&gt;% filter(var == &#39;Chr18_Hybrid_Index&#39; | var == &#39;SpeciesS&#39;)
+dmpplot &lt;- taxdmr %&gt;% ggplot(aes(y=chr,fill=Experiment))+
+  geom_bar()+
+  scale_fill_manual(values=brewer.pal(3,&#39;Set2&#39;))+
+  theme_bw(base_size=8)
+
+ggsave(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250415_DMR_Counts.pdf&#39;,dmpplot, height=3,width=4)
+
+# Intersected closest
+int &lt;- read_tsv(&#39;taxonfocus/Intersect.txt&#39;,col_names = F)
+int %&gt;% arrange(X15)
+
+# # A tibble: 46 × 15
+# X1          X2       X3    X4    X5    X6 X7                 X8         X9    X10   X11   X12    X13 X14     X15
+# &lt;chr&gt;    &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;              &lt;chr&gt;   &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt; &lt;dbl&gt;
+#   1 chr11  1431927  1432029   103    18 -59.9 Chr18_Hybrid_Index chr11  1.43e6 1.43e6   412    10 -48.2  Spec…     0
+# 2 chr1A   374930   375111   182    30 -88.8 Chr18_Hybrid_Index chr1A  3.75e5 3.75e5   169    16 -39.6  Spec…     0
+# 3 chr28  4327237  4327301    65     7  15.2 Chr18_Hybrid_Index chr28  4.33e6 4.33e6   195    21 130.   Spec…     0
+# 4 chr26  6273580  6273635    56     8 -25.4 Chr18_Hybrid_Index chr26  6.28e6 6.28e6    71     4  11.1  Spec…  1681
+# 5 chr4A  3586190  3586242    53     5 -11.8 Chr18_Hybrid_Index chr4A  3.58e6 3.58e6    82     9  26.2  Spec…  2683
+# 6 chr3  18729087 18729150    64     8 -20.7 Chr18_Hybrid_Index chr3   1.87e7 1.87e7   483     5  22.8  Spec…  7577</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="15%" />
+<col width="4%" />
+<col width="5%" />
+<col width="5%" />
+<col width="4%" />
+<col width="7%" />
+<col width="6%" />
+<col width="3%" />
+<col width="5%" />
+<col width="5%" />
+<col width="4%" />
+<col width="7%" />
+<col width="6%" />
+<col width="8%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>HybZon</th>
+<th>ComGar</th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>coordinates</td>
+<td>chr</td>
+<td>start</td>
+<td>end</td>
+<td>Length</td>
+<td>Number CpGs</td>
+<td>Area Stat</td>
+<td>chr</td>
+<td>start</td>
+<td>end</td>
+<td>Length</td>
+<td>Number CpGs</td>
+<td>Area Stat</td>
+<td>Gene</td>
+<td>Distance</td>
+</tr>
+<tr class="even">
+<td>chr11:1431927-1432029</td>
+<td>chr11</td>
+<td>1431927</td>
+<td>1432029</td>
+<td>103</td>
+<td>18</td>
+<td>-59.9</td>
+<td>chr11</td>
+<td>1.43E+06</td>
+<td>1.43E+06</td>
+<td>412</td>
+<td>10</td>
+<td>-48.2</td>
+<td>CBFA2T3</td>
+<td>Within</td>
+</tr>
+<tr class="odd">
+<td>chr1A:374930-375111</td>
+<td>chr1A</td>
+<td>374930</td>
+<td>375111</td>
+<td>182</td>
+<td>30</td>
+<td>-88.8</td>
+<td>chr1A</td>
+<td>3.75E+05</td>
+<td>3.75E+05</td>
+<td>169</td>
+<td>16</td>
+<td>-39.6</td>
+<td>DENND6B</td>
+<td>2 Kb upstream</td>
+</tr>
+<tr class="even">
+<td>chr28:4327237-4327301</td>
+<td>chr28</td>
+<td>4327237</td>
+<td>4327301</td>
+<td>65</td>
+<td>7</td>
+<td>15.2</td>
+<td>chr28</td>
+<td>4.33E+06</td>
+<td>4.33E+06</td>
+<td>195</td>
+<td>21</td>
+<td>130</td>
+<td>LOC104697407</td>
+<td>Within</td>
+</tr>
+</tbody>
+</table>
+</div>
 <div id="consensus-classification" class="section level2">
 <h2>Consensus Classification</h2>
 <p>Require an FDR of 1%, a primary effect divergence of 25%,
 non-significance for other effects. Conserved sites exhibit less than a
 10% difference in methylation range.</p>
+<pre class="r"><code>setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504/&#39;)
+.libPaths(&#39;~/mambaforge/envs/randomforest/lib/R/library&#39;)
+library(tidyverse)
+library(data.table)
+library(viridis)
+
+# Thresholds: FDR corrected pvalue, divergence between groups for factors (e.g. 25%), min% for conserved
+pval &lt;- 0.01
+div &lt;- 0.25
+dd &lt;- 0.1
+
+#### CG
+datsCG &lt;- read.table(&#39;CG_DSS.10x.txt&#39;,header=TRUE)
+datsCG &lt;- datsCG %&gt;% dplyr::rename(fdrs_Species.CG = fdrs_SpeciesS.CG, fdrs_Sex.CG = fdrs_SexM.CG)
+
+# With interacting effects, exclude variables significant for other variables
+cg &lt;- datsCG %&gt;% mutate(DMP.CG = ifelse(fdrs_Species.CG &lt; pval &amp; abs(divergence_Species.CG) &gt; div &amp;
+                                          fdrs_Sex.CG &gt; pval &amp; fdrs_StageCHK.CG &gt; pval &amp; fdrs_StageYRL.CG &gt; pval, &#39;Taxon&#39;,  #species
+                                        ifelse(fdrs_Sex.CG &lt; pval &amp; abs(divergence_Sex.CG) &gt; div &amp;
+                                                 fdrs_Species.CG &gt; pval &amp; fdrs_StageCHK.CG &gt; pval &amp; fdrs_StageYRL.CG &gt; pval, &#39;Sex&#39;, #sex
+                                               ifelse((fdrs_StageCHK.CG &lt; pval | fdrs_StageYRL.CG &lt; pval) &amp; (abs(divergence_StageCHK.CG) &gt; div | abs(divergence_StageYRL.CG) &gt; div) &amp;
+                                                        (fdrs_Sex.CG &gt; pval &amp; fdrs_Species.CG &gt; pval),&#39;Age&#39;,  #stage
+                                                      ifelse(Divergence.CG &lt; dd,  &#39;Conserved&#39;,&#39;Unknown&#39;)))))
+
+cg %&gt;% dplyr::count(DMP.CG)
+
+
+#merge with HZ data..
+hz &lt;- read.table(&#39;HZ_DSS.10x.txt&#39;,header=T)
+hz = hz %&gt;% mutate(DMP.HZ = ifelse(fdrs_Chr18_Hybrid_Index.HZ &lt; pval &amp; fdrs_Year2013.HZ &gt; pval &amp; fdrs_Year2014.HZ &gt; pval, &#39;Taxon&#39;,
+                                   ifelse(Divergence.HZ &lt; dd, &#39;Conserved&#39;,&#39;Unknown&#39;)))
+hz %&gt;% dplyr::count(DMP.HZ)
+dmr2 &lt;- merge(cg,hz,by=c(&#39;site&#39;,&#39;chr&#39;,&#39;start&#39;),all=TRUE)
+
+#count NAs by experiment
+nac = dmr2 %&gt;% select(site,DMP.CG,DMP.HZ)
+nac$NAs = rowSums(is.na(nac))
+nac %&gt;% dplyr::count(NAs)
+
+#replace NA with missing
+dmr3 = dmr2 %&gt;% replace_na(list(DMP.CG =&#39;MISSING&#39;,DMP.HZ = &#39;MISSING&#39;))
+
+# Assign sites based on conflicts between experiments
+dmr4 &lt;- dmr3 %&gt;% 
+  mutate(
+    Class = case_when(
+      # Taxon classification
+      (DMP.CG == &quot;Taxon&quot; &amp; DMP.HZ %in% c(&quot;Taxon&quot;, &quot;Unknown&quot;, &quot;Conserved&quot;, &quot;MISSING&quot;)) ~ &quot;Taxon&quot;,
+      (DMP.HZ == &quot;Taxon&quot; &amp; DMP.CG %in% c(&quot;Taxon&quot;, &quot;Unknown&quot;, &quot;Conserved&quot;, &quot;MISSING&quot;)) ~ &quot;Taxon&quot;,
+      
+      # Age classification
+      (DMP.CG == &quot;Age&quot; &amp; DMP.HZ %in% c(&quot;Unknown&quot;, &quot;Conserved&quot;, &quot;MISSING&quot;))  ~ &quot;Age&quot;,
+      
+      # Sex classification
+      (DMP.CG == &quot;Sex&quot; &amp; DMP.HZ %in% c(&quot;Unknown&quot;, &quot;Conserved&quot;, &quot;MISSING&quot;)) ~ &quot;Sex&quot;,
+      
+      # Conserved classification
+      (DMP.CG == &quot;Conserved&quot; &amp; DMP.HZ == &quot;Conserved&quot;) ~ &quot;Conserved&quot;,
+      
+      # Conflict
+      TRUE ~ &quot;Unknown&quot;
+    ),
+    # Count experiments supporting each classification
+    SupportCount = case_when(
+      Class == &quot;Taxon&quot; ~ rowSums(cbind(DMP.CG == &quot;Taxon&quot;, DMP.HZ == &quot;Taxon&quot;)),
+      Class == &quot;Age&quot; ~ as.numeric(DMP.CG == &quot;Age&quot;),
+      Class == &quot;Sex&quot; ~ as.numeric(DMP.CG == &quot;Sex&quot;),
+      Class == &quot;Conserved&quot; ~ 2, # All three experiments must agree
+      TRUE ~ 0 # For conflicts or unknown classifications
+    )
+  )
+
+dmr4 &lt;- dmr4 %&gt;% mutate(Focal_Region = ifelse(chr == &#39;chr18&#39; &amp; start &gt; 8.07e6 &amp; start &lt; 10.07e6,&#39;Focal&#39;,&#39;Undiverged&#39;))
+dmr4 %&gt;% count(SupportCount,Class)
+dmr4 %&gt;% filter(Class == &#39;Taxon&#39; &amp; SupportCount &gt;= 2 &amp; DMP.HZ == &#39;Taxon&#39;)
+dmr4 %&gt;% filter(Class == &#39;Taxon&#39; &amp; SupportCount &gt;= 2 &amp; DMP.HZ == &#39;Taxon&#39;) %&gt;% select(matches(&#39;site|Focal|fdrs&#39;)) %&gt;% select(matches(&#39;site|Focal|Species|Hybrid&#39;))
+
+
+dmr4 %&gt;% filter(chr == &#39;chr18&#39; &amp; start %in% c(10000910, 9005914, 9005915)) %&gt;% select(site,contains(&#39;.HZ&#39;))
+dmr5 = dmr4 
+dmr5$Mean5mC.CG = rowMeans(dmr5[grepl(&#39;^D_.*CG|^S_.*CG&#39;,names(dmr5))],na.rm=TRUE)
+dmr5$Mean5mC.HZ = rowMeans(dmr5[grepl(&#39;^D_.*HZ|^S_.*HZ|^H_.*HZ&#39;,names(dmr5))],na.rm=TRUE)                                                     
+
+write.table(dmr5,&#39;Full-HZ-CG.DSS.BP-10x.Classified-20250410.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=FALSE)
+</code></pre>
+<div id="including-comgar.wgbs-1" class="section level3">
+<h3>Including ComGar.WGBS</h3>
 <pre class="r"><code>.libPaths(&#39;~/miniconda3/envs/randomforest/lib/R/library&#39;)
 setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept/&#39;)
 library(tidyverse)
@@ -4082,6 +4787,7 @@ dmr5$Mean5mC.hz = rowMeans(dmr5[grepl(&#39;^D_.*hz|^S_.*hz|^H_.*hz&#39;,names(dm
 write.table(dmr5,&#39;Full.DSS.BP-10x.Classified-20250107.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=FALSE)
 </code></pre>
 </div>
+</div>
 <div id="merge-with-popgen-data" class="section level2">
 <h2>Merge with Popgen Data</h2>
 <p>And now intersect with our REGION, DXY, FST, PI, data:</p>
@@ -4091,21 +4797,27 @@ rgn=$rgndir/GCF_000738735.5_ASM73873v5_genomic.GenomicFeaturesCDS.bed
 popdat=$rgndir/GCF_000738735.5_ASM73873v5_genomic.PopGen2023JAN.bed
 
 #create sites file 
-sed &#39;1d&#39; Full.DSS.BP-10x.Classified-20250107.txt | awk &#39;{OFS=&quot;\t&quot;}{print $2, $3, $3, $1}&#39; &gt; Sites.bed
+sed &#39;1d&#39; Full-HZ-CG.DSS.BP-10x.Classified-20250410.txt | awk &#39;{OFS=&quot;\t&quot;}{print $2, $3, $3, $1}&#39; &gt; Sites.bed
 
 #create master overlapped genetic file 
 bedtools intersect -wao -a Sites.bed -b $rgn | bedtools intersect -wao -a - -b $gc | bedtools intersect -header -wao -a - -b $popdat | awk &#39;{OFS=&quot;\t&quot;}{print $1, $16, $17, $4, $2, $8, $13, $18, $19, $20, $21, $22}&#39; &gt; All-Overlapped.bed</code></pre>
 <p>and re-merge with the full dataset</p>
 <pre class="r"><code>library(tidyverse)
 options(scipen=999)
-init &lt;- read.table(&#39;Full.DSS.BP-10x.Classified-20250107.txt&#39;,header=T)
+init &lt;- read.table(&#39;Full-HZ-CG.DSS.BP-10x.Classified-20250410.txt&#39;,header=T)
 anno &lt;- read.table(&#39;All-Overlapped.bed&#39;,header=F)
 names(anno) &lt;- c(&#39;chr&#39;,&#39;GenStart&#39;,&#39;GenEnd&#39;,&#39;site&#39;,&#39;start&#39;, &#39;Region&#39;,&#39;GC&#39;,&#39;HapD&#39;,&#39;FuLiD&#39;,&#39;TajimaD&#39;,&#39;Dxy&#39;,&#39;FST&#39;)
 all &lt;- full_join(init,anno)
 all$Region &lt;- gsub(&#39;\\.&#39;,&#39;Missing&#39;,all$Region)
 nrow(all)
-write.table(all,&#39;Full.DSS.BP-10x.Classified-Annotated_20250107.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)</code></pre>
-<p>And merge with our REGION, DXY, FST, PI, data:</p>
+all &lt;- all %&gt;%
+  mutate(end = start,
+         start = start - 1) %&gt;%
+  relocate(chr, start, end, .before = 1)
+write.table(all,&#39;Full-HZ-CG.DSS.BP-10x.Classified-Annotated_20250410.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)</code></pre>
+<div id="including-comgar.wgbs-2" class="section level3">
+<h3>Including ComGar.WGBS</h3>
+<p>Merge with our REGION, DXY, FST, PI, data:</p>
 <pre class="bash"><code>rgndir=/dss/dsslegfs01/pr53da/pr53da-dss-0021/projects/2021__Cuckoo_Resequencing/crow_scratch/2021-07_HybridZone/Nov/Regions
 gc=$rgndir/GCF_000738735.5_ASM73873v5_genomic.GC-Content.500bp.bed
 rgn=$rgndir/GCF_000738735.5_ASM73873v5_genomic.GenomicFeaturesCDS.bed
@@ -4127,9 +4839,56 @@ all$Region &lt;- gsub(&#39;\\.&#39;,&#39;Missing&#39;,all$Region)
 nrow(all)
 all = all %&gt;% dplyr::rename(Class = DMP_Strict)
 write.table(all,&#39;Full.DSS.BP-10x.Classified-Annotated-YEAR_23AUG30.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)</code></pre>
+<p>Afterwards, exclude any SNPs:</p>
+<pre class="bash"><code>head -n 1 Full-HZ-CG.DSS.BP-10x.Classified-Annotated_20250410.txt &gt; header.txt
+sed &#39;1d&#39; Full-HZ-CG.DSS.BP-10x.Classified-Annotated_20250410.txt | bedtools subtract -a - -b GCF_000738735.5_ASM73873v5_genomic.AllSNPs.sorted.bed &gt; no_snp.bed
+cat header.txt no_snp.bed &gt; Full-HZ-CG.DSS.BP-10x.Classified-Annotated-SNPless_20250410.txt</code></pre>
+</div>
 </div>
 <div id="upset-plot" class="section level2">
 <h2>UpSet Plot</h2>
+<pre class="bash"><code>.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504&#39;)
+library(tidyverse)
+library(UpSetR)
+options(scipen=999)
+all = read_tsv(&#39;Full-HZ-CG.DSS.BP-10x.Classified-Annotated-SNPless_20250410.txt&#39;)
+
+ap = all %&gt;% select(site,DMP.HZ,DMP.CG)
+ap = ap %&gt;% mutate(across(starts_with(&quot;DMP&quot;), ~ ifelse(. == &quot;MISSING&quot;, &quot;Unknown&quot;, .)))
+names(ap) = c(&#39;site&#39;,&#39;HybZon&#39;,&#39;ComGar&#39;)
+
+#only include sites which at least 1 taxon occurrence 
+taxon_data &lt;- ap %&gt;%
+  filter(HybZon == &quot;Taxon&quot; | ComGar == &quot;Taxon&quot;)
+
+# binary presence/absence matrix 
+binary_matrix &lt;- taxon_data %&gt;%
+  mutate(HybZon = ifelse(HybZon == &quot;Taxon&quot;, 1, 0),
+         ComGar = ifelse(ComGar == &quot;Taxon&quot;, 1, 0)) %&gt;%
+  select(HybZon, ComGar)
+
+# sum up the binary flags to get counts for each combination
+aggregated_counts &lt;- binary_matrix %&gt;%
+  group_by(HybZon, ComGar) %&gt;%
+  summarise(count = n(), .groups = &#39;drop&#39;)
+
+# &#39;exression&#39; data format for upsetR 
+upset_data &lt;- c(
+  HybZon = aggregated_counts$count[aggregated_counts$HybZon == 1 &amp; aggregated_counts$ComGar == 0],
+  ComGar = aggregated_counts$count[aggregated_counts$HybZon == 0 &amp; aggregated_counts$ComGar == 1],
+  &quot;HybZon&amp;ComGar&quot; = aggregated_counts$count[aggregated_counts$HybZon == 1 &amp; aggregated_counts$ComGar == 1]
+)
+
+up = upset(fromExpression(upset_data), order.by = &quot;freq&quot;)
+up
+
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250416_Upset_Taxon_Plot.pdf&#39;,height=4,width=6)
+up
+dev.off()
+</code></pre>
+<div id="including-comgar.wgbs-3" class="section level3">
+<h3>Including ComGar.WGBS</h3>
 <pre class="bash"><code>.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
 setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept&#39;)
 library(tidyverse)
@@ -4250,12 +5009,775 @@ dev.off()
 </code></pre>
 </div>
 </div>
+<div id="distance-to-snps" class="section level2">
+<h2>Distance to SNPs</h2>
+<pre class="r"><code>setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504/&#39;)
+.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
+library(tidyverse)
+library(data.table)
+library(viridis)
+library(meRo)
+library(rstatix)
+library(ggpubr)
+
+pval &lt;- 0.01
+
+#### CG
+datsCG &lt;- read.table(&#39;CG_DSS.10x.txt&#39;,header=TRUE)
+datsCG &lt;- datsCG %&gt;% dplyr::rename(fdrs_Species.CG = fdrs_SpeciesS.CG, fdrs_Sex.CG = fdrs_SexM.CG)
+
+# With interacting effects, exclude variables significant for other variables
+cg &lt;- datsCG %&gt;% mutate(DMP.CG = ifelse(fdrs_Species.CG &lt; pval &amp; fdrs_Sex.CG &gt; pval &amp; fdrs_StageCHK.CG &gt; pval &amp; fdrs_StageYRL.CG &gt; pval, &#39;Taxon&#39;,  #species
+                                        ifelse(fdrs_Sex.CG &lt; pval &amp; fdrs_Species.CG &gt; pval &amp; fdrs_StageCHK.CG &gt; pval &amp; fdrs_StageYRL.CG &gt; pval, &#39;Sex&#39;, #sex
+                                               ifelse((fdrs_StageCHK.CG &lt; pval | fdrs_StageYRL.CG &lt; pval) &amp; (fdrs_Sex.CG &gt; pval &amp; fdrs_Species.CG &gt; pval),&#39;Age&#39;,
+                                                      &#39;Unknown&#39;))))
+
+cg %&gt;% dplyr::count(DMP.CG)
+
+
+#merge with HZ data..
+hz &lt;- read.table(&#39;HZ_DSS.10x.txt&#39;,header=T)
+hz = hz %&gt;% mutate(DMP.HZ = ifelse(fdrs_Chr18_Hybrid_Index.HZ &lt; pval &amp; fdrs_Year2013.HZ &gt; pval &amp; fdrs_Year2014.HZ &gt; pval, &#39;Taxon&#39;,
+                                   ifelse((fdrs_Year2014.HZ &lt; pval | fdrs_Year2013.HZ &lt; pval) &amp; fdrs_Chr18_Hybrid_Index.HZ,&#39;Year&#39;,
+                                          &#39;Unknown&#39;)))
+hz %&gt;% dplyr::count(DMP.HZ)
+dmps &lt;- rbind(cg %&gt;% mutate(Experiment = &#39;ComGar&#39;,end=start,start=start-1) %&gt;% select(chr,start,end,DMP=DMP.CG,Experiment),
+      hz %&gt;% mutate(Experiment = &#39;HybZon&#39;,end=start,start=start-1) %&gt;% select(chr,start,end,DMP=DMP.HZ,Experiment)) %&gt;% 
+  filter(DMP != &#39;Unknown&#39;) %&gt;% arrange(chr,start) %&gt;% filter(!grepl(&#39;scaf&#39;,chr))
+write.table(dmps,file=&#39;CG-HZ_DMPsTaxon.sorted.bed&#39;,quote=F,sep=&#39;\t&#39;,row.names=F,col.names=F)
+# bedtools closest -a CG-HZ_DMPsTaxon.sorted.bed -b GCF_000738735.5_ASM73873v5_genomic.AllSNPs.sorted.bed -d &gt; CG-HZ_DMPsTaxon.sorted-SNPDistance.bed
+
+dist &lt;- read_tsv(&#39;CG-HZ_DMPsTaxon.sorted-SNPDistance.bed&#39;,col_names = F)
+names(dist) &lt;- c(&#39;chr&#39;,&#39;start&#39;,&#39;end&#39;,&#39;DMP&#39;,&#39;Experiment&#39;,&#39;d1&#39;,&#39;SNPa&#39;,&#39;SNPb&#39;,&#39;Alt&#39;,&#39;Ref&#39;,&#39;Distance&#39;)
+
+# Exclude these as they intersect directly and the 5mC call is unreliable! 
+dist &lt;- dist %&gt;% filter(Distance != 0)
+
+# Summarize
+dists &lt;- dist %&gt;% 
+  group_by(Experiment,DMP) %&gt;%
+  sum_stats(Distance)
+
+# Experiment DMP    mean     sd     se median   iqr conf_low conf_high
+# &lt;chr&gt;      &lt;chr&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;
+#   1 ComGar     Age   1361. 45876.  540.     168  397     303.      2419.
+# 2 ComGar     Sex    303.   640.   11.8    129  306.    280.       327.
+# 3 ComGar     Taxon 1796. 53272. 1478.     152  326.  -1103.      4694.
+# 4 HybZon     Taxon  546.  1969.  293.      99  198     -45.7     1137.
+# 5 HybZon     Year   544.   741.   76.0    221  671     393.       695.
+
+# pairwise wilcoxon test
+pw &lt;- dist %&gt;%
+  group_by(Experiment) %&gt;%
+  pairwise_wilcox_test(Distance ~ DMP, p.adjust.method = &quot;bonferroni&quot;)
+ypos &lt;- dists %&gt;% mutate(max_y = conf_high+1e3) %&gt;% select(Experiment,DMP,max_y)
+pw &lt;- pw %&gt;%
+  left_join(ypos, by = c(&quot;Experiment&quot;, &quot;group1&quot; = &quot;DMP&quot;)) %&gt;%
+  rename(y1 = max_y) %&gt;%
+  left_join(ypos, by = c(&quot;Experiment&quot;, &quot;group2&quot; = &quot;DMP&quot;)) %&gt;%
+  rename(y2 = max_y) %&gt;%
+  mutate(y.position = pmax(y1, y2) + 0.05 * max(pmax(y1, y2), na.rm = TRUE),
+         label = ifelse(p.adj &lt; 0.001, &quot;***&quot;,
+                        ifelse(p.adj &lt; 0.01, &quot;**&quot;,
+                               ifelse(p.adj &lt; 0.05, &quot;*&quot;, &quot;ns&quot;))))
+
+dp &lt;- dists %&gt;% 
+  ggplot(aes(x = DMP, y = mean, ymin = pmax(conf_low, 0), ymax = conf_high)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_grid(. ~ Experiment, scales = &#39;free&#39;, space = &#39;free&#39;) +
+  ylab(&#39;Distance from DMP to SNP&#39;) +
+  theme_bw(base_size=8) +
+  stat_pvalue_manual(pw, 
+                     label = &quot;label&quot;, 
+                     y.position = &quot;y.position&quot;, 
+                     xmin = &quot;group1&quot;, 
+                     xmax = &quot;group2&quot;, 
+                     tip.length = 0.01,inherit.aes=FALSE)
+
+ggsave(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250411_SNP_Distance_HZ-CG.pdf&#39;,dp,height=2.5,width=4)
+</code></pre>
+</div>
+</div>
 <div id="decision-trees" class="section level1">
 <h1>Decision Trees</h1>
 <p>Take the classified data, and prepare it for RF:</p>
 <p>Great tutorial: <a href="https://www.kirenz.com/post/2021-02-17-r-classification-tidymodels/" class="uri">https://www.kirenz.com/post/2021-02-17-r-classification-tidymodels/</a></p>
 <div id="prep" class="section level2">
 <h2>Prep</h2>
+<pre class="r"><code>.libPaths(&#39;~/mambaforge/envs/tidymodels/lib/R/library&#39;)
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504/RFS_202504/&#39;)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(viridis)
+library(GGally)
+.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
+library(tidyverse)
+library(matrixStats)
+library(corrr)
+options(scipen=999)
+
+all &lt;- read.table(&#39;../Full-HZ-CG.DSS.BP-10x.Classified-Annotated-SNPless_20250410.txt&#39;,header=T)
+all &lt;- all %&gt;% arrange(chr,start)
+all &lt;- all %&gt;% mutate_at(grep(&quot;HapD|FuLi|Tajima|Dxy|FST|GC&quot;,colnames(.)),funs(as.numeric))
+all &lt;- subset(all,Region != &#39;Missing&#39; &amp; Region != &#39;.&#39;)
+c = read.table(&#39;../CG_DSS.10x.stat&#39;,header=TRUE) %&gt;% select(site, mstat.cg = &#39;stat_SpeciesS&#39;)
+h = read.table(&#39;../HZ_DSS.10x.stat&#39;,header=TRUE) %&gt;% select(site, mstat.hz = &#39;stat_Chr18_Hybrid_Index&#39;)
+
+#merge data frames
+f = left_join(all,c) %&gt;% 
+  left_join(.,h) 
+s &lt;- f %&gt;% mutate(end = start) %&gt;% select(chr,start,end,mstat.cg,mstat.hz,Region) 
+write.table(s,file=&#39;../5mC_10x_STAT-Region_202504.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
+
+#cycle through the experiments 
+xps = c(&#39;hz&#39;,&#39;cg&#39;)
+rfdat = NULL
+
+#add chr length information
+genome &lt;- read.table(&#39;../genome5.7.bed&#39;,header=F) %&gt;% filter(!grepl(&#39;scaf|MT&#39;,V1)) %&gt;% arrange(desc(V2))
+names(genome) &lt;- c(&#39;chr&#39;,&#39;Length&#39;)
+
+#count missing by experiment
+da = NULL
+for (xp in xps){
+  d1 = f %&gt;% dplyr::rename(meth = as.symbol(paste0(&#39;mstat.&#39;,xp))) %&gt;% select(meth,TajimaD,GC,chr,GenStart) %&gt;% 
+    drop_na(meth) %&gt;% group_by(chr,GenStart) %&gt;% 
+    summarize(GC = mean(GC,na.rm=TRUE),
+              val = mean(meth),
+              taj = mean(TajimaD))
+  gcall = d1 %&gt;% ungroup %&gt;% drop_na(taj) %&gt;% summarize(gca = mean(GC,na.rm=TRUE))
+  d1 =  d1 %&gt;% ungroup %&gt;% mutate(Total = n()) %&gt;% filter(is.na(taj)) %&gt;% summarize(nas = n(),
+                                                                                    total = Total,
+                                                                                    gca = mean(GC,na.rm=TRUE)) %&gt;% unique %&gt;%
+    mutate(pct = nas/total * 100,xp = xp,gcall = gcall$gca)
+  da = rbind(da,d1)
+}
+da 
+# # A tibble: 2 × 6
+# nas total   gca   pct xp    gcall
+# &lt;int&gt; &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt; &lt;dbl&gt;
+#   1   228 37883  67.9 0.602 hz     60.0
+# 2   356 34441  68.4 1.03  cg     61.4
+
+
+rfdat &lt;- NULL
+for (xp in xps){
+  
+  title &lt;- case_when(
+    xp == &#39;cg&#39; ~ &#39;ComGar.RRBS&#39;,
+    xp == &#39;hz&#39; ~ &#39;HybZon.RRBS&#39;,
+    TRUE ~ NA_character_
+  )
+  
+  cat(&#39;Creating output for: &#39;,xp,&#39;, &#39;,title,&#39;\n&#39;)
+  #add chr length and position
+  kb = f %&gt;% select(chr,Region,GenStart,GenEnd,HapD,FuLiD,TajimaD,Dxy,FST,GC,as.symbol(paste0(&#39;mstat.&#39;,xp))) %&gt;% 
+    dplyr::rename(val = as.symbol(paste0(&#39;mstat.&#39;,xp))) %&gt;% 
+    mutate(val = abs(val)) %&gt;%   #ensure it&#39;s simply the absolute value since we don&#39;t care about direction 
+    left_join(.,genome) %&gt;%  #add length 
+    group_by(chr,Length,Region,GenStart,GenEnd,HapD,FuLiD,TajimaD,Dxy,FST) %&gt;% #calculate mean values within these windows 
+    summarize(GC = mean(GC,na.rm=TRUE),
+              Statm = mean(val,na.rm=TRUE),
+              Statx = max(val,na.rm=TRUE)) %&gt;% 
+    arrange(chr,GenStart)
+  kb %&gt;% nrow
+  kb %&gt;% drop_na(Statm) %&gt;% nrow
+  kb %&gt;% drop_na(Statm,TajimaD) %&gt;% nrow
+  #on the assumption of LD, impute the closest genetic data for regions which are missing
+  kb$Dxy = zoo::na.fill(kb$Dxy, &quot;extend&quot;)
+  kb$FST = zoo::na.fill(kb$FST, &quot;extend&quot;)
+  kb$HapD = zoo::na.fill(kb$HapD, &quot;extend&quot;)
+  kb$TajimaD = zoo::na.fill(kb$TajimaD, &quot;extend&quot;)
+  kb$FuLiD = zoo::na.fill(kb$FuLiD, &quot;extend&quot;)
+  kb1 = kb %&gt;% na.omit
+  
+  #set classifications
+  kb1 = kb1 %&gt;% mutate(chr = gsub(&#39;chr&#39;,&#39;&#39;,chr),
+                       chr = gsub(&#39;4A&#39;,&#39;4.1&#39;,chr),
+                       chr = gsub(&#39;1A&#39;,&#39;1.1&#39;,chr)) %&gt;% 
+    filter(chr != &#39;Z&#39;)
+  order = kb1 %&gt;% ungroup %&gt;% select(chr,Length) %&gt;% unique %&gt;% arrange(desc(Length))
+  kb1$chr = factor(kb1$chr,levels=order$chr)
+  cgm &lt;- kb1 %&gt;% ungroup %&gt;% pivot_longer(!c(chr,Length,Region,GenStart,GenEnd,HapD,FuLiD,TajimaD,Dxy,FST,GC),values_to = &#39;raw&#39;,names_to = &#39;variable&#39;)
+  cgm = cgm %&gt;% mutate(log = log(ifelse(raw == 0,0.0001,raw)),
+                       sqrt = sqrt(raw),
+                       cube = raw^(1/3))
+  cgm1 = cgm %&gt;% pivot_longer(!c(chr,Length,Region,GenStart,GenEnd,HapD,FuLiD,TajimaD,Dxy,FST,variable,GC),names_to=&#39;transformation&#39;) %&gt;% 
+    mutate(variable = gsub(&#39;Statm&#39;,&#39;Mean&#39;,variable),
+           variable = gsub(&#39;Statx&#39;,&#39;Max&#39;,variable))
+  cgm1$transformation = factor(cgm1$transformation,levels=c(&#39;raw&#39;,&#39;log&#39;,&#39;sqrt&#39;,&#39;cube&#39;)) 
+  rawp = cgm1 %&gt;% ggplot(aes(y=value,fill=transformation))+
+    geom_density()+scale_fill_manual(values=viridis(4,option=&#39;inferno&#39;))+
+    facet_wrap(variable~transformation,scales=&#39;free&#39;,ncol = 4)+
+    theme_classic()
+  
+  #apply transformations to SD and variance
+  xfm = cgm %&gt;% mutate(valueuse = sqrt(raw)) %&gt;% 
+    mutate(variable = gsub(&#39;Statm&#39;,&#39;Mean&#39;,variable),
+           variable = gsub(&#39;Statx&#39;,&#39;Max&#39;,variable))
+  #replot
+  xfmp  = xfm %&gt;% select(variable,valueuse,raw) %&gt;% 
+    pivot_longer(!c(variable)) %&gt;% 
+    mutate(name = case_when(
+      name == &#39;valueuse&#39; ~ &#39;log(Raw)&#39;,
+      name == &#39;raw&#39; ~ &#39;Raw&#39;)) %&gt;% 
+    ggplot(aes(x=value,fill=name))+
+    geom_density()+scale_fill_manual(values=viridis(4,option=&#39;inferno&#39;))+
+    facet_wrap(name~variable,scales=&#39;free&#39;,ncol=4)+
+    ggtitle(paste0(&#39;Continuous: &#39;,title))+
+    theme_classic()
+  assign(paste0(xp,&#39;_values&#39;),xfmp)
+  
+  #set classifications for each variable
+  ##### BINARY
+  dat = xfm %&gt;% ungroup %&gt;% select(!c(log,sqrt,cube))
+  bdat = dat
+  thresh = bdat %&gt;% group_by(variable) %&gt;% summarize(Threshold = quantile(valueuse,0.8)) %&gt;% unique
+  thresh
+  bdat = left_join(bdat,thresh)
+  bdat = bdat %&gt;% mutate(Classified = ifelse(valueuse &gt;=Threshold, &#39;High&#39;,&#39;Low&#39;))
+  binp = bdat %&gt;% ggplot(aes(x=valueuse,fill=variable)) + 
+    facet_wrap(~variable,scales=&#39;free&#39;)+
+    geom_histogram()+
+    scale_fill_viridis(discrete=TRUE,option=&#39;mako&#39;)+
+    geom_vline(data=thresh, aes(xintercept=Threshold),lty=2,lwd=0.5,col=&#39;yellow&#39;)+
+    ylab(&#39;&#39;)+theme_classic()+
+    ggtitle(paste0(&#39;Binary: &#39;,title))
+  assign(paste0(xp,&#39;_thresh&#39;),binp)
+  
+  #merge them 
+  bd = bdat %&gt;% select(-contains(&#39;Thresh&#39;)) %&gt;% dplyr::rename(Continuous = valueuse)
+  ad = bd %&gt;% mutate(Relativepos = GenStart / Length)
+  ad$Subset = toupper(xp)
+  rfdat = rbind(rfdat,ad)
+}
+
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250411_Raw_Distributions.pdf&#39;,height=5,width=5)
+ggarrange(cg_values,hz_values,common.legend = TRUE,nrow=3)
+dev.off()
+
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250411_Raw_Thresholds.pdf&#39;,height=6,width=4)
+ggarrange(cg_thresh,hz_thresh,common.legend = TRUE,nrow=3)
+dev.off()
+
+#save frame 
+write.table(rfdat,file=&#39;RF-Input-250411.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
+
+#output correlations among variables
+cord = NULL
+xps = c(&#39;HZ&#39;,&#39;CG&#39;)
+for (xp in xps){
+  d1 = rfdat %&gt;% filter(Subset == xp &amp; variable == &#39;Mean&#39;)
+  np = d1 %&gt;% 
+    select(Length,Relativepos,Region,HapD,FuLiD,TajimaD,Dxy,FST,GC) %&gt;% 
+    correlate(method=&#39;spearman&#39;) %&gt;%    # Create correlation data frame (cor_df)
+    corrr::network_plot(min_cor = 0,legend=&#39;range&#39;)
+  assign(paste0(xp,&#39;_cor&#39;),np)
+  
+  x = d1 %&gt;%
+    select(Length,Relativepos,Region,HapD,FuLiD,TajimaD,Dxy,FST,GC) %&gt;%
+    corrr::correlate() %&gt;%    # Create correlation data frame (cor_df)
+    rearrange()  # rearrange by correlations
+  x$experiment = xp
+  cord = rbind(cord,x)
+}
+
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250411_Correlations_RF_Input.pdf&#39;,height=6,width=12)
+ggarrange(CG_cor,HZ_cor,labels=c(&#39;ComGar.RRBS&#39;,&#39;HybZon.RRBS&#39;),nrow=1)
+dev.off()
+
+write.table(cord,file=&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250411_Correlations_RF_Input.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
+</code></pre>
+</div>
+<div id="run-models" class="section level2">
+<h2>Run models</h2>
+<pre class="r"><code>#!/usr/bin/env Rscript
+args = commandArgs(trailingOnly=TRUE)
+.libPaths(&#39;~/mambaforge/envs/tidymodels/lib/R/library&#39;)
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504/RFS_202504/&#39;)
+#### Randomforest Classification
+library(tidymodels)
+library(GGally)
+library(gt)
+library(visdat)
+library(themis)
+library(skimr)
+library(viridis)
+library(finetune)
+library(xgboost)
+require(doParallel)
+library(kknn)
+library(forcats)
+library(vip)
+
+#Parallelisation
+cores &lt;- 5
+cl &lt;- makePSOCKcluster(cores)
+registerDoParallel(cl)
+
+dats &lt;- read.table(&#39;RF-Input-250411.txt&#39;,header=T)
+type = args[1]  #e.g. Binary,Regression
+vari = args[2] #e.g. Mean,Max
+xp = args[3] #subset experiment, CG HZ
+iter = args[4] #iteration
+
+dat = dats %&gt;% filter(variable == vari &amp; Subset == xp)
+if (type == &#39;Regression&#39;) {
+  cat(&#39;Response type is Continuous, taking continuous values\n&#39;)
+  rf = dat %&gt;% select(c(Continuous,Length,Relativepos,Region,HapD,FuLiD,TajimaD,Dxy,FST,GC))
+  rf = rf %&gt;% dplyr::rename(Response = Continuous)
+} else {
+  cat(&#39;Response type is Binary, taking classified values\n&#39;)
+  rf = dat %&gt;% select(c(as.symbol(type),Length,Relativepos,Region,HapD,FuLiD,TajimaD,Dxy,FST,GC))
+  rf = rf %&gt;% dplyr::rename(Response = Classified)
+}
+
+#for exploration, run on subset
+#rf = rf %&gt;% sample_n(5000)
+# convert to numeric
+rf = rf %&gt;% mutate_at(grep(&quot;Length|Relative|HapD|Fu|Taj|Dxy|FST|GC&quot;,colnames(.)),funs(as.numeric))
+
+# convert all remaining character variables to factors
+rf = rf %&gt;% mutate(across(where(is.character), as.factor))
+skim(rf)
+
+#split into training and testing datasets
+data_split &lt;- initial_split(rf, strata = &quot;Response&quot;, prop = 0.75)
+
+train_explore &lt;- training(data_split)
+test_explore  &lt;- testing(data_split)
+data_explore = train_explore
+
+# Generate resamples and repeat
+cv_folds = vfold_cv(train_explore, v = 5, strata = Response)
+
+# define the recipe
+mc_recipe =  # which consists of the formula (outcome ~ predictors)
+  recipe(Response ~ ., data = rf) %&gt;%
+  # and some pre-processing steps
+  step_novel(all_nominal(), -all_outcomes()) %&gt;% # converts all nominal variables to factors and takes care of other issues related to categorical variables
+  step_normalize(Length, Relativepos, HapD, FuLiD, TajimaD, Dxy, FST, GC, -all_outcomes()) %&gt;% # normalizes (center and scales) the numeric variables to have a standard deviation of one and a mean of zero. (i.e., z-standardization)
+  step_dummy(all_nominal(), -all_outcomes()) %&gt;% # converts our factor column ocean_proximity into numeric binary (0 and 1) variables
+  step_zv(all_numeric(), -all_outcomes()) %&gt;% # removes any numeric variables that have zero variance
+  step_corr(all_predictors(), threshold = 0.8, method = &quot;spearman&quot;) # will remove predictor variables that have large correlations with other predictor variables
+
+#check the pre-processing
+examine_preprocessed &lt;- mc_recipe %&gt;% # apply the recipe to the training data
+  prep(rf) %&gt;%  # extract the pre-processed training dataset
+  juice()
+examine_preprocessed
+
+#set the models
+if (type == &#39;Regression&#39;) {
+  cat(&#39;Response type is Regression, using regression engines\n&#39;)
+  #boosted trees
+  xgb_mod = boost_tree(trees = tune(),min_n = tune(),mtry = tune(),learn_rate = tune()) %&gt;% set_engine(&quot;xgboost&quot;,importance=&quot;permutation&quot;) %&gt;% set_mode(&quot;regression&quot;)
+  xgb_wf &lt;- workflow(mc_recipe, xgb_mod)
+  xgb_rs &lt;- tune_race_anova(xgb_wf,resamples = cv_folds,grid = 15, metrics = metric_set(rsq),control = control_race(verbose_elim = TRUE))
+  #plot_race(xgb_rs)
+  show_best(xgb_rs)
+  xgb_last = xgb_wf %&gt;% finalize_workflow(select_best(xgb_rs, &quot;rsq&quot;)) %&gt;% last_fit(data_split)
+  xgb_pred = collect_predictions(xgb_last) %&gt;% select(.pred,Response)
+  xgb_pred$Engine = &#39;XGBoost&#39;
+  xgb_vi = extract_workflow(xgb_last) %&gt;% extract_fit_parsnip() %&gt;% vi()
+  xgb_vi$Engine = &#39;XGBoost&#39;
+  xgb_fit = xgb_last %&gt;% collect_metrics()
+  xgb_fit$Engine = &#39;XGBoost&#39;
+  
+  #randomforest
+  rf_mod = rand_forest(trees = tune(),min_n = tune(),mtry = tune()) %&gt;% set_engine(&quot;ranger&quot;,importance=&quot;permutation&quot;) %&gt;% set_mode(&quot;regression&quot;)
+  rf_wf = workflow(mc_recipe, rf_mod)
+  rf_rs = tune_race_anova(rf_wf,resamples = cv_folds,grid = 15, metrics = metric_set(rsq),control = control_race(verbose_elim = TRUE))
+  show_best(rf_rs)
+  rf_last = rf_wf %&gt;% finalize_workflow(select_best(rf_rs, &quot;rsq&quot;)) %&gt;% last_fit(data_split)
+  rf_pred = collect_predictions(rf_last) %&gt;% select(.pred,Response)
+  rf_pred$Engine = &#39;Random forest&#39;
+  rf_vi = extract_workflow(rf_last) %&gt;% extract_fit_parsnip() %&gt;% vi()
+  rf_vi$Engine = &#39;Random forest&#39;
+  rf_fit = rf_last %&gt;% collect_metrics()
+  rf_fit$Engine = &#39;Random forest&#39;
+  
+} else {
+  cat(&#39;Response type is Binary, using classification engines\n&#39;)
+  rf_fit = NULL
+  rf_vi = NULL
+  rf_pred = NULL
+  #boosted trees
+  xgb_mod = boost_tree(trees = tune(),min_n = tune(),mtry = tune(),learn_rate = tune()) %&gt;% set_engine(&quot;xgboost&quot;,importance=&quot;permutation&quot;) %&gt;% set_mode(&quot;classification&quot;)
+  xgb_wf &lt;- workflow(mc_recipe, xgb_mod)
+  xgb_rs &lt;- tune_race_anova(xgb_wf,resamples = cv_folds,grid = 15, metrics = metric_set(roc_auc),control = control_race(verbose_elim = TRUE))
+  #plot_race(xgb_rs)
+  show_best(xgb_rs)
+  xgb_last = xgb_wf %&gt;% finalize_workflow(select_best(xgb_rs, &quot;roc_auc&quot;)) %&gt;% last_fit(data_split)
+  xgb_pred = collect_predictions(xgb_last) %&gt;% select(.pred_class,Response)
+  xgb_pred$Engine = &#39;XGBoost&#39;
+  xgb_vi = extract_workflow(xgb_last) %&gt;% extract_fit_parsnip() %&gt;% vi()
+  xgb_vi$Engine = &#39;XGBoost&#39;
+  xgb_fit = xgb_last %&gt;% collect_metrics()
+  xgb_fit$Engine = &#39;XGBoost&#39;
+  
+}
+
+#save fit
+fit = rbind(xgb_fit,rf_fit)
+names(fit) = c(&#39;Metric&#39;,&#39;Estimator&#39;,&#39;Estimate&#39;,&#39;Config&#39;,&#39;Engine&#39;)
+fitdf = data.frame(fit,Type = type,Response = vari,Subset = xp,Subset = xp, Iteration=iter)
+fitdf
+write.table(fitdf,file=paste0(&#39;results/&#39;,type,&#39;_&#39;,vari,&#39;_&#39;,xp,&#39;_&#39;,iter,&#39;_FIT.txt&#39;),quote=F,sep=&#39;\t&#39;,row.names=F)
+
+#save vi
+vi = rbind(xgb_vi,rf_vi)
+vidf = data.frame(vi,Type = type,Response = vari,Subset = xp,Iteration=iter)
+vidf
+write.table(vidf,file=paste0(&#39;results/&#39;,type,&#39;_&#39;,vari,&#39;_&#39;,xp,&#39;_&#39;,iter,&#39;_VI.txt&#39;),quote=F,sep=&#39;\t&#39;,row.names=F)
+
+#save predictions
+preds = rbind(xgb_pred,rf_pred)
+names(preds) = c(&#39;Predicted&#39;,&#39;Truth&#39;,&#39;Engine&#39;)
+preddf = data.frame(preds,Type = type,Response = vari,Subset = xp,Iteration=iter)
+#preddf
+write.table(preddf,file=paste0(&#39;results/&#39;,type,&#39;_&#39;,vari,&#39;_&#39;,xp,&#39;_&#39;,iter,&#39;_PRED.txt&#39;),quote=F,sep=&#39;\t&#39;,row.names=F)
+</code></pre>
+<p>Prepare the sbatch:</p>
+<pre class="bash"><code>#!/bin/bash
+
+#SBATCH --get-user-env
+#SBATCH --mail-user=merondun@bio.lmu.de
+#SBATCH --clusters=biohpc_gen
+#SBATCH --partition=biohpc_gen_normal
+#SBATCH --cpus-per-task=5
+#SBATCH --time=48:00:00
+
+T=$1
+V=$2
+S=$3
+I=$4
+
+echo &quot;Running Randomforest.R with: Type=$T, Variable=$V, Subset=$S, Iteration=$I&quot;
+
+Rscript Randomforest.R $T $V $S $I
+</code></pre>
+<p>Submit the many loops with:</p>
+<pre class="bash"><code>for a in $(cat Types.list); do  for b in $(cat Variables.list); do for c in $(cat Subsets.list); do for d in $(cat Iterations.list); do  sbatch -J ${a}_${b}_${c}_${d} randomforest.sh $a $b $c $d;  done;  done; done; done</code></pre>
+<p>Merge results:</p>
+<pre class="bash"><code>mergem *VI*txt &gt; Master.vi
+mergem *FIT*txt &gt; Master.fit
+mergem Class*PRED* &gt; Classification_Predictions.txt
+mergem Regre*PRED* &gt; Regression_Predictions.txt</code></pre>
+</div>
+<div id="plot-results" class="section level2">
+<h2>Plot Results</h2>
+<pre class="r"><code>.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504/RFS_202504/results&#39;)
+setwd(&#39;G:/My Drive/Research/Crow_Hybrid_Epigenetics/rf/2025_04/&#39;)
+#### Plot decision tree results
+library(tidyverse)
+library(viridis)
+library(forcats)
+library(ggpubr)
+library(rstatix)
+library(RColorBrewer)
+library(gmodels)
+
+#evaluate fit
+fit = read.table(&#39;Master.fit&#39;,header=T,sep=&#39;\t&#39;) %&gt;% select(-c(Subset.1))
+fs = fit %&gt;% group_by(Subset,Response,Type,Metric) %&gt;% 
+  summarize(mean = ci(Estimate)[1],
+            hi = ci(Estimate)[2],
+            lo = ci(Estimate)[3],
+            sd = ci(Estimate)[4])
+
+# Subset Response Type       Metric     mean     hi     lo        sd
+# &lt;chr&gt;  &lt;chr&gt;    &lt;chr&gt;      &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;
+#   1 CG     Max      Classified accuracy 0.800  0.798  0.803  0.000507 
+# 2 CG     Max      Classified roc_auc  0.682  0.674  0.690  0.00178  
+# 3 CG     Max      Regression rmse     0.370  0.369  0.372  0.000620 
+# 4 CG     Max      Regression rsq      0.102  0.101  0.104  0.000720 
+# 5 CG     Mean     Classified accuracy 0.800  0.800  0.801  0.000127 
+# 6 CG     Mean     Classified roc_auc  0.704  0.700  0.709  0.00105  
+# 7 CG     Mean     Regression rmse     0.243  0.241  0.245  0.000831 
+# 8 CG     Mean     Regression rsq      0.194  0.189  0.198  0.00171  
+# 9 HZ     Max      Classified accuracy 0.800  0.800  0.800  0.0000969
+# 10 HZ     Max      Classified roc_auc  0.644  0.631  0.657  0.00299  
+# 11 HZ     Max      Regression rmse     0.292  0.291  0.293  0.000404 
+# 12 HZ     Max      Regression rsq      0.0964 0.0920 0.101  0.00171  
+# 13 HZ     Mean     Classified accuracy 0.800  0.800  0.800  0        
+# 14 HZ     Mean     Classified roc_auc  0.663  0.645  0.682  0.00434  
+# 15 HZ     Mean     Regression rmse     0.167  0.164  0.171  0.00129  
+# 16 HZ     Mean     Regression rsq      0.0794 0.0791 0.0798 0.000132 
+
+fs = fs %&gt;% 
+  mutate(Subset = gsub(&#39;CG&#39;,&#39;ComGar&#39;,Subset),
+         Subset = gsub(&#39;HZ&#39;,&#39;HybZon&#39;,Subset))
+fs$Subset &lt;- factor(fs$Subset,levels=c(&#39;ComGar&#39;,&#39;HybZon&#39;))
+fs %&gt;% filter(Response == &#39;Mean&#39; &amp; Type == &#39;Regression&#39; &amp; Metric == &#39;rsq&#39;)
+fpr = fs %&gt;% 
+  filter(Type == &#39;Regression&#39;) %&gt;% 
+  ggplot(aes(x=Response,y=mean,col=Subset,shape=Subset))+
+  geom_point(size=3,position=position_dodge(width=0.5))+
+  geom_errorbar(aes(ymin=lo,ymax=hi),width=0.5,position=position_dodge(width=0.5))+
+  ylab(&#39;Evaluation Metric&#39;)+xlab(&#39;Response (DNA Methylation Divergence Within 5KB Window)&#39;)+
+  scale_color_manual(values=brewer.pal(3,&#39;Set2&#39;))+
+  ggtitle(&#39;Regression&#39;)+
+  theme_bw()+
+  theme(legend.position=&#39;none&#39;)+
+  facet_grid(Metric~Type,scales=&#39;free&#39;)
+fpr
+fpc = fs %&gt;% 
+  filter(Type != &#39;Regression&#39;) %&gt;% 
+  ggplot(aes(x=Response,y=mean,col=Subset,shape=Subset))+
+  geom_point(size=3,position=position_dodge(width=0.5))+
+  geom_errorbar(aes(ymin=lo,ymax=hi),width=0.5,position=position_dodge(width=0.5))+
+  ylab(&#39;Evaluation Metric&#39;)+xlab(&#39;Response (DNA Methylation Divergence Within 5KB Window)&#39;)+
+  scale_color_manual(values=brewer.pal(3,&#39;Set2&#39;))+
+  ggtitle(&#39;Classification&#39;)+
+  theme_bw()+
+  #theme(legend.position=&#39;none&#39;)+
+  facet_grid(Metric~Type,scales=&#39;free&#39;)
+fpc
+fpa = ggarrange(fpr,fpc,widths = c(0.75,1.2))
+fpa
+
+#save
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250414_RF_Fit.pdf&#39;,height=5,width=8)
+fpa
+dev.off()
+
+#evalute VI
+vi = read.table(&#39;Master.vi&#39;,header=T,sep=&#39;\t&#39;)
+#this won&#39;t change anything for XGBoost, but to plot together we will scale the RF covariate importance to sum to 1 (as with XGBoost)
+vi = vi %&gt;% group_by(Subset,Response,Engine,Type,Iteration) %&gt;% mutate(Importance = ifelse(Importance &lt; 0,0,Importance),
+                                                                       TotalImp = sum(Importance),
+                                                                       PctImp = Importance / TotalImp,
+                                                                       Variable = gsub(&#39;GC&#39;,&#39;GC-Content&#39;,Variable),
+                                                                       Variable = gsub(&#39;Length&#39;,&#39;Chromosome Length&#39;,Variable),
+                                                                       Variable = gsub(&#39;Relativepos&#39;,&#39;Chromosomal Position&#39;,Variable),
+                                                                       Variable = gsub(&#39;HapD&#39;,&#39;Haplotype Diversity&#39;,Variable),
+                                                                       Variable = gsub(&#39;TajimaD&#39;,&quot;Tajima&#39;s D&quot;,Variable),
+                                                                       Variable = gsub(&quot;FuLiD&quot;,&quot;Fu &amp; Li&#39;s D*&quot;,Variable))
+vis = vi %&gt;% group_by(Subset,Response,Type,Variable) %&gt;% 
+  summarize(mean = ci(PctImp)[1],
+            hi = ci(PctImp)[2],
+            lo = ci(PctImp)[3],
+            sd = ci(PctImp)[4])
+vis = vis %&gt;% 
+  mutate(Subset = gsub(&#39;CG&#39;,&#39;ComGar&#39;,Subset),
+         Subset = gsub(&#39;HZ&#39;,&#39;HybZon&#39;,Subset))
+vis$Subset &lt;- factor(vis$Subset,levels=c(&#39;ComGar&#39;,&#39;HybZon&#39;))
+#find most important overall, we will sort by this
+imps = vi %&gt;% group_by(Response,Type,Variable) %&gt;% summarize(mean=mean(PctImp)) %&gt;% arrange(desc(mean)) %&gt;% mutate(ORDER = row_number())
+vis = left_join(vis,imps %&gt;% select(Response,Type,Variable,ORDER))
+vip = vis %&gt;% 
+  #filter(Response == &#39;Mean&#39; &amp; Type == &#39;Regression&#39;) %&gt;% 
+  mutate(NewOrd = fct_reorder(Variable,ORDER,.desc = TRUE)) %&gt;% 
+  ggplot(aes(y=NewOrd,x=mean,fill=Subset))+
+  geom_bar(stat=&#39;identity&#39;,position=position_dodge(width=0.9))+
+  geom_errorbar(aes(xmin=ifelse(mean-sd&lt;0,0,mean-sd),xmax=mean+sd),width=0.5,position=position_dodge(width=0.9))+
+  scale_fill_manual(values=c(&#39;#b8de29&#39;,&#39;#33638d&#39;))+
+  theme_bw()+
+  #theme(legend.position=&#39;none&#39;)+
+  ylab(&#39;&#39;)+xlab(&#39;Permutation Importance&#39;)+
+  facet_grid(Type~Response,scales=&#39;free&#39;)+
+  theme(axis.text.x=element_text(angle=45,vjust=1,hjust=1))
+vip
+
+#save
+pdf(&#39;20250414_RF_VIP_Regression-All.pdf&#39;,height=6,width=6)
+vip 
+dev.off()
+
+
+viS = vi %&gt;% group_by(Subset,Response,Type,Variable,Engine) %&gt;% 
+  #filter(Response == &#39;Mean&#39; &amp; Type == &#39;Regression&#39;) %&gt;% 
+  summarize(mean = ci(PctImp)[1],
+            lo = ci(PctImp)[2],
+            hi = ci(PctImp)[3],
+            se = ci(PctImp)[4])
+write.table(viS,file=&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250414_Permutation_Importance.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
+
+# Across all experiments, as reported in main text
+vi %&gt;% group_by(Variable) %&gt;% 
+  filter(Response == &#39;Mean&#39; &amp; Type == &#39;Regression&#39;) %&gt;% 
+  summarize(mean = ci(PctImp)[1],
+            lo = ci(PctImp)[2],
+            hi = ci(PctImp)[3],
+            se = ci(PctImp)[4])
+
+# Variable                 mean       lo      hi       se
+# &lt;chr&gt;                   &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;
+#   1 Chromosomal Position 0.0556   0.0492   0.0620  0.00289 
+# 2 Chromosome Length    0.0728   0.0653   0.0803  0.00341 
+# 3 Dxy                  0.0959   0.0638   0.128   0.0146  
+# 4 FST                  0.0172   0.0110   0.0234  0.00283 
+# 5 Fu &amp; Li&#39;s D*         0.0480   0.0390   0.0570  0.00409 
+#  6 GC-Content           0.251    0.214    0.287   0.0166  
+#  7 Haplotype Diversity  0.0895   0.0669   0.112   0.0103  
+#  8 Region_Intergenic    0.0276   0.0200   0.0352  0.00345 
+#  9 Region_Intron        0.0179   0.0115   0.0243  0.00290 
+# 10 Region_Promoter      0.267    0.219    0.316   0.0219  
+# 11 Region_Repeat        0.000589 0.000146 0.00103 0.000201
+# 12 Tajima&#39;s D           0.0566   0.0429   0.0704  0.00625 
+
+#save
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250414_RF_VIP_Regression.pdf&#39;,height=6,width=6)
+vip 
+dev.off()
+
+
+#Also plot for ALL subsets, experiments, types 
+ALL = vi %&gt;% group_by(Subset,Response,Type,Variable) %&gt;% 
+  summarize(mean = ci(PctImp)[1],
+            hi = ci(PctImp)[2],
+            lo = ci(PctImp)[3],
+            sd = ci(PctImp)[4])
+ALL = ALL %&gt;% 
+  mutate(Subset = gsub(&#39;CG&#39;,&#39;ComGar&#39;,Subset),
+         Subset = gsub(&#39;HZ&#39;,&#39;HybZon&#39;,Subset))
+ALL$Subset &lt;- factor(ALL$Subset,levels=c(&#39;ComGar&#39;,&#39;HybZon&#39;))
+#find most important overall, we will sort by this
+ALL = left_join(ALL,imps %&gt;% ungroup %&gt;% select(Variable,ORDER))
+ALL$Type = factor(ALL$Type,levels=c(&#39;Regression&#39;,&#39;Classified&#39;))
+ALLp = ALL %&gt;% 
+  mutate(NewOrd = fct_reorder(Variable,ORDER,.desc = TRUE)) %&gt;% 
+  ggplot(aes(y=NewOrd,x=mean,fill=Subset))+
+  geom_bar(stat=&#39;identity&#39;,position=position_dodge(width=0.9))+
+  geom_errorbar(aes(xmin=ifelse(mean-sd&lt;0,0,mean-sd),xmax=mean+sd),width=0.5,position=position_dodge(width=0.9))+
+  scale_fill_manual(values=brewer.pal(3,&#39;Set2&#39;))+
+  theme_bw()+
+  #theme(legend.position=&#39;none&#39;)+
+  ylab(&#39;&#39;)+xlab(&#39;Permutation Importance&#39;)+
+  facet_grid(Response~Type,scales=&#39;free&#39;)+
+  theme(axis.text.x=element_text(angle=45,vjust=1,hjust=1))
+ALLp
+
+#save
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250414_RF_VIP_All.pdf&#39;,height=6,width=10)
+ALLp
+dev.off()
+
+#evalute predictions
+conf = read.table(&#39;Regression_Predictions.txt&#39;,header=T,sep=&#39;\t&#39;)
+cp = conf %&gt;% 
+  ggplot(aes(x=Predicted,y=Truth,col=Subset))+
+  #geom_point(alpha = 0.5)+
+  geom_smooth()+
+  #geom_density_2d()+
+  scale_color_manual(values=c(viridis(3)))+
+  theme_bw()+xlab(&#39;Predicted&#39;)+ylab(&#39;Truth&#39;)+
+  theme(legend.position = &quot;none&quot;)+
+  facet_wrap(Subset~Response,scales=&#39;free&#39;,nrow=3)
+cp
+
+#evalute predictions, classification
+confclass = read_tsv(&#39;Classification_Predictions.txt&#39;)
+confclass %&gt;% group_by(Predicted,Truth,Engine,Response,Subset) %&gt;% 
+  summarize(count = n()) %&gt;% 
+  ggplot(aes(x=Predicted,y=Truth,fill=count))+
+  geom_tile()+
+  scale_fill_continuous(low=&#39;yellow&#39;,high=&#39;red&#39;)+
+  theme_bw()+xlab(&#39;Predicted&#39;)+ylab(&#39;Truth&#39;)+
+  facet_grid(Response+Engine~Subset,scales=&#39;free&#39;)
+
+
+#save
+png(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250414_RF_Predictions.png&#39;,height=5,width=3.5,res=600,units=&#39;in&#39;)
+cp
+dev.off()
+</code></pre>
+</div>
+<div id="rho-5mc-popgen-correlations" class="section level2">
+<h2>Rho: 5mC PopGen Correlations</h2>
+<pre class="bash"><code>.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504/RFS_202504&#39;)
+#### PopGen ~ 5mC spearman correlations
+library(tidyverse)
+library(viridis)
+library(forcats)
+library(ggpubr)
+library(rstatix)
+library(gmodels)
+library(RColorBrewer)
+
+#plot some of the interesting comparisons
+rf = read_tsv(&#39;RF-Input-250411.txt&#39;)
+
+### Correlations: 5mC / genetic variation
+cat(&#39;Working on correlations for genetic variation, 5mc \n&#39;)
+rf1 = rf %&gt;% filter(variable == &#39;Mean&#39;) %&gt;% select(chr,GenStart,GenEnd,raw,HapD,FuLiD,TajimaD,Dxy,FST,Subset)
+rf1 = rf1 %&gt;% mutate(Focal_Region = ifelse(chr == &#39;18&#39; &amp; GenStart &gt; 8070001 &amp; GenStart &lt; 10070000,&#39;Focal&#39;,&#39;Undiverged&#39;))
+rf2 = rf1 %&gt;%
+  pivot_longer(!c(chr,GenStart,GenEnd,raw,Subset,Focal_Region)) %&gt;%
+  na.omit()
+xps = c(&#39;CG&#39;,&#39;HZ&#39;,&#39;WGBS&#39;)
+
+fullboots = NULL
+options(dplyr.summarise.inform = FALSE)
+set.seed(123)
+B &lt;- 999 # number of bootstrap replicates
+
+for (xp in xps) {
+  for (vr in unique(rf2$name)) {
+    cat(&#39;Working on Experiment &amp; Variable: &#39;,xp,&#39; &#39;,vr,&#39;\n&#39;)
+    bd = rf2 %&gt;% filter(Subset == xp &amp; name == vr)
+    n = bd %&gt;% filter(Focal_Region == &#39;Focal&#39;) %&gt;% nrow
+    bdat=NULL
+    ## Run the bootstrap procedure:
+    for (b in 1:B) {
+      cat(&#39;Iteration: &#39;,b,&#39;\n&#39;)
+      d1 = bd %&gt;% group_by(Focal_Region) %&gt;% slice_sample(n=n,replace=TRUE) %&gt;% summarize(cor = cor(raw,value,method=&#39;spearman&#39;))
+      bdat = rbind(bdat,d1 )
+    }
+    bdat$Experiment = xp
+    bdat$Variable = vr
+    names(bdat) = c(&#39;Focal_Region&#39;,&#39;Boots&#39;,&#39;Experiment&#39;,&#39;Variable&#39;)
+    fullboots = rbind(fullboots,bdat)
+  }
+}
+
+write.table(fullboots,file=&#39;Genetic5mC_Bootstraped_Results-2020250411.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
+fullboots = read.table(&#39;Genetic5mC_Bootstraped_Results-2020250411.txt&#39;,header=TRUE)
+
+#add counts for windows 
+features = rf2 %&gt;% group_by(Subset,Focal_Region,name) %&gt;% count()
+names(features)= c(&#39;Experiment&#39;,&#39;Focal_Region&#39;,&#39;Variable&#39;)
+
+cdm = fullboots %&gt;% 
+  mutate(Experiment = gsub(&#39;CG&#39;,&#39;ComGar&#39;,Experiment),
+         Experiment = gsub(&#39;HZ&#39;,&#39;HybZon&#39;,Experiment))
+cdm$Experiment &lt;- factor(cdm$Experiment,levels=c(&#39;HybZon&#39;,&#39;ComGar&#39;))
+#calculate CIs
+cis = cdm %&gt;% 
+  group_by(Experiment,Variable,Focal_Region) %&gt;% 
+  summarize(LowerBound = quantile(Boots,0.025), #can change based on your significance threshold 
+            UpperBound = quantile(Boots,0.975))
+cis = cis %&gt;% group_by(Experiment,Variable) %&gt;% 
+  mutate(Signif = ifelse(LowerBound &gt; 0 | UpperBound &lt; 0,&#39;*&#39;,&#39;n.s.&#39;))
+
+genp = cdm %&gt;% 
+  ggplot(aes(x=Variable,y=Boots,fill=Focal_Region))+
+  geom_boxplot(alpha=0.75)+
+  geom_text(data=cis,aes(x=Variable,col=Focal_Region,group=Focal_Region,y=Inf,label=Signif,size=Signif),col=&#39;black&#39;,vjust=1.5,position=position_dodge(width=1))+
+  scale_size_manual(values=c(6,4))+
+  scale_fill_manual(values=c(&#39;darkorchid2&#39;,&#39;grey60&#39;))+
+  facet_grid(Experiment~.,scales=&#39;free&#39;)+
+  geom_hline(yintercept=0,lty=2)+
+  ylab(&quot;Spearman&#39;s Rho: Taxon Methylation Divergence&quot;) + xlab(&#39;&#39;)+
+  scale_y_continuous(expand = expansion(mult = .25)) + #expand y axis slightly 
+  theme_bw()
+genp
+
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250414_GenCorBootBootstraps.pdf&#39;,height=4,width=5)
+genp
+dev.off()
+
+write.table(cis,file=&#39;../../Correlations_95CIs.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)</code></pre>
+</div>
+<div id="including-comgar.wgbs-4" class="section level2">
+<h2>Including ComGar.WGBS</h2>
+<div id="prep-1" class="section level3">
+<h3>Prep</h3>
 <pre class="r"><code>.libPaths(&#39;~/mambaforge/envs/tidymodels/lib/R/library&#39;)
 setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept/RF_JAN25&#39;)
 library(dplyr)
@@ -4448,8 +5970,8 @@ dev.off()
 write.table(cord,file=&#39;20250107_Correlations_RF_Input.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
 </code></pre>
 </div>
-<div id="run-rf-xgb" class="section level2">
-<h2>Run RF &amp; XGB</h2>
+<div id="run-rf-xgb" class="section level3">
+<h3>Run RF &amp; XGB</h3>
 <p>Once the data is prepared, grow the forests:</p>
 <pre class="r"><code>#!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
@@ -4604,8 +6126,8 @@ mergem *FIT*txt &gt; Master.fit
 mergem Class*PRED* &gt; Classification_Predictions.txt
 mergem Regre*PRED* &gt; Regression_Predictions.txt</code></pre>
 </div>
-<div id="plot" class="section level2">
-<h2>Plot</h2>
+<div id="plot" class="section level3">
+<h3>Plot</h3>
 <p>And plot results:</p>
 <pre class="r"><code>.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
 setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept/RF_JAN25/results&#39;)
@@ -4802,8 +6324,8 @@ cp
 dev.off()
 </code></pre>
 </div>
-<div id="rho-5mc-population-genetic" class="section level2">
-<h2>Rho: 5mC &amp; Population Genetic</h2>
+<div id="rho-5mc-population-genetic" class="section level3">
+<h3>Rho: 5mC &amp; Population Genetic</h3>
 <p>For genetic v 5mC correlations using the RF input (within 5kb
 windows):</p>
 <pre class="r"><code>.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
@@ -4893,17 +6415,116 @@ dev.off()
 write.table(cis,file=&#39;../../Correlations_95CIs.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)</code></pre>
 </div>
 </div>
+</div>
 <div id="focal-v-bg-bootstraps" class="section level1">
 <h1>Focal v BG Bootstraps</h1>
-<pre class="r"><code># Bootstrap distributions between 5mC test statistics in focal region vs genomic background
-setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept&#39;)
+<div id="bootstrap" class="section level2">
+<h2>Bootstrap</h2>
+<p>Bootstrap sampling compare DMP test statistics within and outside
+focal region</p>
+<pre class="bash"><code># Bootstrap distributions between 5mC test statistics in focal region vs genomic background
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504&#39;)
 .libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
 library(tidyverse)
 library(viridis)
 
 set.seed(123)
 # Read file
-d2 = read.table(&#39;5mC_10x_STAT-Region_20250107.txt&#39;,header=TRUE)
+d2 = read.table(&#39;5mC_10x_STAT-Region_202504.txt&#39;,header=TRUE)
+d3 &lt;- d2 %&gt;% 
+  pivot_longer(matches(&#39;mstat&#39;),values_to = &#39;Stat&#39;, names_to = &#39;experiment&#39;) %&gt;% 
+  mutate(experiment = toupper(gsub(&#39;mstat.&#39;,&#39;&#39;,experiment)),
+         chr = gsub(&#39;chr&#39;,&#39;&#39;,chr)) %&gt;% 
+  mutate(Focal_Region = ifelse(chr == &#39;18&#39; &amp; start &gt; 8070001 &amp; start &lt; 10070000,&#39;Focal&#39;,&#39;Undiverged&#39;), #our focal region lies on chr18 between these coordinates
+         Stat = abs(Stat)) %&gt;% na.omit %&gt;% filter(Region != &#39;Repeat&#39;) #removing any NAs and we won&#39;t analyze repeats because there are so few 
+
+# #store your bootstrapped data in this object 
+# fullboots = NULL
+# options(dplyr.summarise.inform = FALSE)
+# 
+# 
+# bdat=NULL
+# for (xp in unique(d3$experiment)) {
+#   
+# subd3 &lt;- d3 %&gt;% filter(experiment == xp)  
+d4 = d3 %&gt;% mutate(Group = paste0(experiment,&#39;_&#39;,Region,&#39;_&#39;,Focal_Region)) %&gt;% select(Group,Stat)
+groupNa = d3 %&gt;% filter(Focal_Region == &#39;Focal&#39;) %&gt;% count(Focal_Region,experiment,Region)
+groupNb = d3 %&gt;% filter(Focal_Region == &#39;Focal&#39;) %&gt;% count(Focal_Region,experiment,Region) %&gt;% mutate(Focal_Region = gsub(&#39;Focal&#39;,&#39;Undiverged&#39;,Focal_Region))
+groupN = rbind(groupNa,groupNb) %&gt;% mutate(Group = paste0(experiment,&#39;_&#39;,Region,&#39;_&#39;,Focal_Region)) %&gt;% ungroup %&gt;% select(Group,n) %&gt;% arrange(Group)
+d4 %&gt;% 
+  group_split(Group) %&gt;% 
+  map2_dfr(c(groupN$n), ~ slice_sample(.x, n = .y,replace=TRUE)) %&gt;% 
+  group_by(Group) %&gt;% 
+  summarize(Mean = mean(Stat,na.rm=TRUE),
+            Median = median(Stat,na.rm=TRUE),
+            Count = n())
+bdat=NULL
+B &lt;- 999 # number of bootstrap replicates, realistically at least 999
+
+## Run the bootstrap procedure:
+for (b in 1:B) {
+  cat(&#39;Iteration: &#39;,b,&#39;\n&#39;)
+  groupN = rbind(groupNa,groupNb) %&gt;% mutate(Group = paste0(experiment,&#39;_&#39;,Region,&#39;_&#39;,Focal_Region)) %&gt;% ungroup %&gt;% select(Group,n) %&gt;% arrange(Group)
+  d5 = d4 %&gt;% 
+    group_split(Group) %&gt;% 
+    map2_dfr(c(groupN$n), ~ slice_sample(.x, n = .y,replace=TRUE)) %&gt;% 
+    group_by(Group) %&gt;% 
+    summarize(Mean = mean(Stat,na.rm=TRUE),
+              Count = n())
+  bdat = rbind(bdat,d5) #calculate the difference in means between the 2 comparisons 
+}
+
+#save 
+write.table(bdat,file=paste0(&#39;5mC_Bootstraped_ResultsBoxplots-20250414.txt&#39;),quote=F,sep=&#39;\t&#39;,row.names=F)
+bdat = read.table(&#39;5mC_Bootstraped_ResultsBoxplots-20250414.txt&#39;,header=TRUE)
+
+#fix ugly names
+bdatplot = bdat %&gt;% separate(Group, into=c(&#39;Experiment&#39;,&#39;Region&#39;,&#39;Focal_Region&#39;)) %&gt;% 
+  mutate(Experiment = gsub(&#39;CG&#39;,&#39;ComGar&#39;,Experiment),
+         Experiment = gsub(&#39;HZ&#39;,&#39;HybZon&#39;,Experiment)) 
+#proper order
+bdatplot$Experiment &lt;- factor(bdatplot$Experiment,levels=c(&#39;HybZon&#39;,&#39;ComGar&#39;))
+bdatplot$Region = factor(bdatplot$Region,levels=c(&#39;Promoter&#39;,&#39;CDS&#39;,&#39;Intron&#39;,&#39;Intergenic&#39;))
+#calculate CIs
+cis = bdatplot %&gt;% 
+  group_by(Experiment,Region,Focal_Region,Count) %&gt;% 
+  summarize(LowerBound = quantile(Mean,0.025), #can change based on your significance threshold 
+            UpperBound = quantile(Mean,0.975))
+cis = cis %&gt;% group_by(Experiment,Region) %&gt;% 
+  mutate(Signif = ifelse(LowerBound[Focal_Region == &#39;Focal&#39;] &gt; UpperBound[Focal_Region == &#39;Undiverged&#39;],&#39;*&#39;,
+                         ifelse(UpperBound[Focal_Region == &#39;Focal&#39;] &lt; LowerBound[Focal_Region == &#39;Undiverged&#39;],&#39;*&#39;,&#39;n.s.&#39;)))
+
+divplot = bdatplot %&gt;% 
+  ggplot(aes(x=Region,y=Mean,fill=Focal_Region))+
+  geom_boxplot(alpha=0.8,outlier.alpha = 0.25)+
+  geom_text(data=cis,aes(x=Region,group=Region,y=Inf,label=Signif,size=Signif),vjust=1.5,position=position_dodge(width=1))+
+  geom_text(data=cis %&gt;% filter(Focal_Region == &#39;Focal&#39;),aes(x=Region,group=Region,y=-Inf,label=Count),vjust=-1,size=3,position=position_dodge(width=1))+
+  scale_size_manual(values=c(6,4))+
+  scale_fill_manual(values=c(&#39;darkorchid2&#39;,&#39;grey60&#39;))+
+  facet_grid(Experiment~.,scales=&#39;free&#39;)+
+  ylab(&#39;Bootstrapped DNA Methylation Divergence&#39;) + xlab(&#39;&#39;)+
+  scale_y_continuous(expand = expansion(mult = .25)) + #expand y axis slightly 
+  theme_bw(base_size=10)
+divplot
+
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250414_Bootstrapped_MethylationDivergenceBoxplot.pdf&#39;,height=4,width=4)
+divplot
+dev.off()
+
+write.table(cis,file=&#39;~/symlinks/hzone/Methylation_Analyses/figures/MethylationDivergence_95CIs.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
+</code></pre>
+</div>
+<div id="including-comgar.wgbs-5" class="section level2">
+<h2>Including ComGar.WGBS</h2>
+<pre class="r"><code># Bootstrap distributions between 5mC test statistics in focal region vs genomic background
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504&#39;)
+.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
+library(tidyverse)
+library(viridis)
+
+set.seed(123)
+# Read file
+d2 = read.table(&#39;5mC_10x_STAT-Region_202504.txt&#39;,header=TRUE)
 d3 &lt;- d2 %&gt;% 
   pivot_longer(matches(&#39;mstat&#39;),values_to = &#39;Stat&#39;, names_to = &#39;experiment&#39;) %&gt;% 
   mutate(experiment = toupper(gsub(&#39;mstat.&#39;,&#39;&#39;,experiment)),
@@ -4988,11 +6609,262 @@ dev.off()
 write.table(cis,file=&#39;MethylationDivergence_95CIs.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
 </code></pre>
 </div>
+</div>
 <div id="ordinations" class="section level1">
 <h1>Ordinations</h1>
 <div id="methylation-ordinations" class="section level2">
 <h2>Methylation Ordinations</h2>
 <p>5mC: dbRDA</p>
+<pre class="bash"><code>#### dbRDA
+.libPaths(&#39;~/mambaforge/envs/randomforest/lib/R/library&#39;)
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504/&#39;)
+library(dplyr)
+library(tidyverse)
+library(tidymodels)
+library(viridis)
+library(ggplot2)
+library(scales)
+library(vegan)
+library(ecodist)
+library(ggord)
+library(ggtext)
+library(ggpubr)
+library(GGally)
+
+# Import 5mC data
+class &lt;- read.table(&#39;Full-HZ-CG.DSS.BP-10x.Classified-Annotated-SNPless_20250410.txt&#39;,header=TRUE)
+class &lt;- subset(class, Region != &#39;Missing&#39; &amp; Region != &#39;.&#39;)
+
+##### CG #####
+# signal experiment 
+xp &lt;- &#39;.CG&#39;
+
+#select data, round to 1%, and change 0% 5mC to 1% 5mC for CCA
+pcd &lt;- class %&gt;% select(contains(xp)) %&gt;% select(-contains(c(&#39;fdrs&#39;,&#39;DMP&#39;,&#39;Mean&#39;,&#39;divergence&#39;,&#39;Variance&#39;,&#39;Divergence&#39;))) %&gt;% na.omit()
+pcdd &lt;- t(pcd)
+pcr &lt;- round(pcdd,2)
+
+#grab ID
+variables &lt;- as.data.frame(names(pcd))
+names(variables) &lt;- &#39;ID&#39;
+variables$BAK &lt;- variables$ID
+variables$BAK &lt;-  gsub(xp,&#39;&#39;,variables$BAK)
+variables &lt;- variables %&gt;% separate(BAK, into = c(&#39;Taxon&#39;,&#39;ID1&#39;,&#39;ID2&#39;,&#39;Tissue&#39;,&#39;Age&#39;,&#39;Sex&#39;))
+variables &lt;- variables %&gt;% select(ID,Taxon,Age,Sex)
+variables &lt;- variables %&gt;% mutate(Taxon = ifelse(Taxon == &#39;D&#39;,&#39;C.C.&#39;,&#39;H.C.&#39;),
+                                  Sex = ifelse(Sex == &#39;F&#39;,&#39;Female&#39;,&#39;Male&#39;))
+#binarize in vegan format
+rda_recipe =  # which consists of the formula (outcome ~ predictors)
+  recipe(~ Taxon + Age + Sex, data = variables) %&gt;%
+  # and some pre-processing steps
+  step_novel(all_nominal(), -all_outcomes()) %&gt;% # converts all nominal variables to factors and takes care of other issues related to categorical variables
+  step_dummy(all_nominal(), -all_outcomes()) %&gt;% # converts our factor column ocean_proximity into numeric binary (0 and 1) variables
+  step_zv(all_numeric(), -all_outcomes()) %&gt;% # removes any numeric variables that have zero variance
+  step_corr(all_predictors(), threshold = 0.8, method = &quot;spearman&quot;) # will remove predictor variables that have large correlations with other predictor variables
+proc = rda_recipe %&gt;% # apply the recipe to the training data
+  prep(variables) %&gt;% juice()
+
+#identify which distance is superior
+rankindex(proc , pcr, indices = c(&quot;euc&quot;, &quot;man&quot;, &quot;gow&quot;, &quot;bra&quot;, &quot;kul&quot;),stepacross= FALSE, method = &quot;spearman&quot;)
+# euc       man       gow       bra       kul 
+# 0.4387298 0.4184629 0.4076826 0.4024229 0.4072586 
+
+#constrained ordination with step selection 
+cgnull &lt;- dbrda(pcr ~ 1, proc, dist=&quot;euc&quot;,scaling=TRUE)  # Model with intercept only
+cgdb = dbrda(pcr ~ ., proc, dist=&quot;euc&quot;,scaling=TRUE) # Model with all explanatory variables
+cgdb = dbrda(pcr ~ ., proc %&gt;% select(-Taxon_H.C.), dist=&quot;euc&quot;,scaling=TRUE) # Model with all explanatory variables
+
+## With scope present, the default direction is &quot;both&quot;
+#ordistep(cgnull, scope = formula(cgdb), perm.max = 200)
+
+#by terms
+tmc &lt;- as.data.frame(anova(cgdb, by=&quot;terms&quot;, permu=10000)) # test for sign. environ. variables
+tmc
+# Df   Variance         F Pr(&gt;F)
+# Taxon_H.C.  1  158.08589 2.0093595  0.001
+# Age_CHK     1  211.91170 2.6935154  0.001
+# Age_YRL     1   56.42415 0.7171823  0.987
+# Sex_Male    1  174.29972 2.2154463  0.001
+# Residual   19 1494.82056        NA     NA
+
+# adjusted R^2
+R2adjc &lt;- round(RsquareAdj(cgdb)$adj.r.squared,3)
+pvalc &lt;- anova(cgdb) # overall test of the significant of the analysis
+plabc &lt;- round(pvalc[1,4],3)
+plabc
+# [1] 0.001
+R2adjc
+# [1] 0.136
+
+#### WITHOUT TAXON
+# plabc
+# [1] 0.001
+# R2adjc
+# [1] 0.093
+
+
+#plot raw
+p2 &lt;- ggord(cgdb,variables$Taxon,ellipse=F,veccol=&quot;blue&quot;,labcol=&quot;blue&quot;,addcol=&quot;black&quot;,addsize=0.0000001,addpch=27,coord_fix=FALSE)+xlab(&#39;dbRDA1&#39;)+ylab(&#39;dbRDA2&#39;)
+p2$layers[[1]] &lt;- NULL
+new_dat &lt;- data.frame(p2$data$one,p2$data$two,variables$Taxon,variables$Sex,variables$Age)
+new_dat$variables.SEX_SP &lt;- paste0(new_dat$variables.Taxon,&#39;_&#39;,new_dat$variables.Sex)
+new_dat$variables.SEX_SP &lt;- factor(new_dat$variables.SEX_SP, levels=c(&#39;C.C._Female&#39;,&#39;C.C._Male&#39;,&#39;H.C._Female&#39;,&#39;H.C._Male&#39;))
+names(new_dat) &lt;- gsub(&#39;.*\\.&#39;,&#39;&#39;,names(new_dat))
+
+# add points layer manually, redefine some aesthetics
+cgp &lt;- p2 + geom_point(data = new_dat, show.legend = F,aes(x=one,
+                                                           y=two, 
+                                                           shape=SEX_SP,
+                                                           colour = Age,
+                                                           fill = Age,
+                                                           size=10)) +
+  scale_color_manual(values=rev(viridis(3,option=&#39;cividis&#39;)))+
+  scale_fill_manual(values=rev(viridis(3,option=&#39;cividis&#39;)))+
+  #geom_text(data=new_dat,aes(x=one,y=two,label=Sex))+
+  scale_shape_manual(values=c(1,21,2,24))+
+  geom_richtext(aes(x=Inf,y=Inf,label=paste(&quot;adj. R&lt;sup&gt;2&lt;/sup&gt;: &quot;,round(R2adjc,3))),vjust=1,hjust=1,size=5,label.colour=NA)+
+  theme_classic(base_size=12)+
+  geom_richtext(aes(x=Inf,y=Inf,label=paste(&quot;p = &quot;,plabc)),vjust=2,hjust=1,size=5,label.colour=NA)+
+  expand_limits(x = c(min(new_dat[,1])+min(new_dat[,1])*1,
+                      max(new_dat[,1])+max(new_dat[,1])*1.5),
+                y = c(min(new_dat[,2])+min(new_dat[,2])*1,
+                      max(new_dat[,2])+max(new_dat[,2])*1.5))+xlab(&#39;dbRDA1&#39;)+ylab(&#39;dbRDA2&#39;)
+cgp
+
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250415_RDA_CG-Small.pdf&#39;, height=4, width=4.5)
+cgp
+dev.off()  
+
+#legend
+shp = unique(new_dat %&gt;% select(c(SEX_SP))) %&gt;% mutate(order=c(2,1,3,4)) %&gt;% arrange(order) %&gt;% 
+  mutate(Shape = c(21,1,24,2), Color = &#39;black&#39;) %&gt;% dplyr::rename(Legend = SEX_SP) %&gt;% select(-order)
+col = unique(new_dat %&gt;% select(c(Age))) %&gt;% mutate(Color = rev(viridis(3,option=&#39;cividis&#39;)),Shape=21) %&gt;% dplyr::rename(Legend = Age)
+allc = rbind(shp,col) %&gt;% mutate(x=row_number(),y=1)
+allc = allc %&gt;% mutate(Legend = gsub(&#39;C.C._Female&#39;, &#39;C.C. Female&#39;,Legend),
+                       Legend = gsub(&#39;C.C._Male&#39;, &#39;C.C. Male&#39;,Legend),
+                       Legend = gsub(&#39;H.C._Female&#39;, &#39;H.C. Female&#39;,Legend),
+                       Legend = gsub(&#39;H.C._Male&#39;, &#39;H.C. Male&#39;,Legend),
+                       Legend = gsub(&#39;ADL&#39;, &#39;Adult&#39;,Legend),
+                       Legend = gsub(&#39;YRL&#39;, &#39;Yearling&#39;,Legend),
+                       Legend = gsub(&#39;CHK&#39;, &#39;Chick&#39;,Legend),
+                       order = c(2,1,3,4,7,5,6)) %&gt;% 
+  arrange(order)
+allc$Legend &lt;- factor(allc$Legend, levels=c(&#39;C.C. Male&#39;,&#39;C.C. Female&#39;,&#39;H.C. Female&#39;,&#39;H.C. Male&#39;,&#39;Chick&#39;,&#39;Adult&#39;,&#39;Yearling&#39;))
+
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250415__RDA_CG-Legend.pdf&#39;, height=6, width=8)
+plot.new()
+legend(x = &quot;top&quot;,inset=c(0,-.1),xpd=TRUE,pt.cex=1.5,legend=allc$Legend,pt.bg=allc$Color,pch=allc$Shape,ncol=4,cex=.8)
+dev.off()  
+
+##### HZ #####
+# signal experiment 
+xp &lt;- &#39;.HZ&#39;
+
+#select data, round to 1%, and change 0% 5mC to 1% 5mC for CCA
+pcd &lt;- class %&gt;% select(contains(xp)) %&gt;% select(-contains(c(&#39;fdrs&#39;,&#39;DMP&#39;,&#39;Mean&#39;,&#39;divergence&#39;,&#39;Variance&#39;,&#39;Divergence&#39;))) %&gt;% na.omit()
+pcdd &lt;- t(pcd)
+pcr &lt;- round(pcdd,2)
+rownames(pcr) &lt;- gsub(&#39;.HZ&#39;,&#39;&#39;,rownames(pcr))
+
+#grab ID
+variables &lt;- read.table(&#39;HZ_Metadata.txt&#39;,header=T)
+variables &lt;- variables %&gt;% select(-ID) %&gt;% dplyr::rename(ID = variable)
+variables$Year &lt;- as.factor(variables$Year)
+keep &lt;- as.data.frame(row.names(pcr))
+names(keep) &lt;- &#39;ID&#39;
+variables &lt;- left_join(variables,keep)
+variables &lt;- variables[match(rownames(pcr), variables$ID), ]
+rownames(variables) &lt;- variables$ID
+
+#pre-process data 
+rda_recipe =  # which consists of the formula (outcome ~ predictors)
+  recipe(~ Chr18_Hybrid_Index + Year, data = variables) %&gt;%
+  # and some pre-processing steps
+  step_novel(all_nominal(), -all_outcomes()) %&gt;% # converts all nominal variables to factors
+  step_dummy(all_nominal(), -all_outcomes()) %&gt;% # converts our factor column into numeric binary 
+  step_zv(all_numeric(), -all_outcomes()) %&gt;% # removes any numeric variables that have zero variance
+  step_scale(all_numeric(), -all_outcomes()) %&gt;% # removes any numeric variables that have zero variance
+  step_corr(all_predictors(), threshold = 0.8, method = &quot;spearman&quot;) # will remove predictor variables that have large correlations with other predictor variables
+proc = rda_recipe %&gt;% # apply the recipe to the training data
+  prep(variables) %&gt;% juice()
+proc
+
+#identify which distance is superior
+rankindex(proc , pcr, indices = c(&quot;euc&quot;, &quot;man&quot;, &quot;gow&quot;, &quot;bra&quot;, &quot;kul&quot;),stepacross= FALSE, method = &quot;spearman&quot;)
+# euc       man       gow       bra       kul 
+# 0.1258837 0.1608645 0.2069293 0.1883800 0.1900351 
+
+#constrained ordination with step selection 
+hznull &lt;- dbrda(pcr ~ 1, proc, dist=&quot;euc&quot;,scaling=TRUE)  # Model with intercept only
+hzdb = dbrda(pcr ~ ., proc, dist=&quot;euc&quot;,scaling=TRUE) # Model with all explanatory variables
+hzdb = dbrda(pcr ~ ., proc %&gt;% select(-Chr18_Hybrid_Index), dist=&quot;euc&quot;,scaling=TRUE) # Model with all explanatory variables
+
+## With scope present, the default direction is &quot;both&quot;
+#ordistep(hznull, scope = formula(hzdb), perm.max = 200)
+
+#by terms
+tmh &lt;- as.data.frame(anova(hzdb, by=&quot;terms&quot;, permu=10000)) # test for sign. environ. variables
+tmh 
+# Df  Variance        F Pr(&gt;F)
+# Chr18_Hybrid_Index  1  174.3159 1.188712  0.038
+# Year_X2013          1  221.2921 1.509056  0.001
+# Year_X2014          1  146.7541 1.000760  0.369
+# Residual           18 2639.5683       NA     NA
+
+# adjusted R^2
+R2adjh &lt;- round(RsquareAdj(hzdb)$adj.r.squared,3)
+pvalh &lt;- anova(hzdb) # overall test of the significant of the analysis
+plabh &lt;- round(pvalh[1,4],3)
+plabh
+# [1] 0.003
+R2adjh
+# [1] 0.032
+
+
+#### WITHOUT HYBRID INDEX 
+# &gt; plabh
+# [1] 0.002
+# &gt; # [1] 0.003
+#   &gt; R2adjh
+# [1] 0.027
+
+#plot raw
+p3 &lt;- ggord(hzdb,variables$Taxon,ellipse=F,veccol=&quot;blue&quot;,labcol=&quot;blue&quot;,addcol=&quot;black&quot;,addsize=0.0000001,addpch=27,coord_fix=FALSE)+xlab(&#39;dbRDA1&#39;)+ylab(&#39;dbRDA2&#39;)
+p3$layers[[1]] &lt;- NULL
+new_dat &lt;- data.frame(p3$data$one,p3$data$two,variables$Species,variables$Chr18_Hybrid_Index,variables$Year)
+names(new_dat) &lt;- gsub(&#39;.*\\.&#39;,&#39;&#39;,names(new_dat))
+new_dat
+
+# add points layer manually, redefine some aesthetics
+hzp &lt;- p3 + 
+  geom_point(data = new_dat, show.legend = F,aes(x=one,
+                                                 y=two, 
+                                                 shape=Year,
+                                                 fill = Chr18_Hybrid_Index,
+                                                 size=10)) +
+  scale_fill_gradient(low=&#39;grey30&#39;,high=&#39;grey90&#39;)+
+  scale_shape_manual(values=c(24,21,23))+
+  geom_richtext(aes(x=Inf,y=Inf,label=paste(&quot;adj. R&lt;sup&gt;2&lt;/sup&gt;: &quot;,round(R2adjh,3))),vjust=1,hjust=1,size=5,label.colour=NA)+
+  geom_richtext(aes(x=Inf,y=Inf,label=paste(&quot;p = &quot;,plabh)),vjust=2,hjust=1,size=5,label.colour=NA)+
+  theme_classic(base_size=12)+
+  expand_limits(x = c(min(new_dat[,1])+min(new_dat[,1])*1.5,
+                      max(new_dat[,1])+max(new_dat[,1])*1.5),
+                y = c(min(new_dat[,2])+min(new_dat[,2])*0.5,
+                      max(new_dat[,2])+max(new_dat[,2])*1.5))+
+  guides(fill=guide_legend(override.aes=list(shape=21)))
+
+hzp
+
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250415_RDA_HZ.pdf&#39;, height=4, width=4.5)
+hzp
+dev.off()  
+
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250415_RDA_HZ-Legend.pdf&#39;, height=6, width=8)
+hzp
+dev.off() 
+</code></pre>
+<div id="including-comgar.wgbs-6" class="section level3">
+<h3>Including ComGar.WGBS</h3>
 <pre class="r"><code>#### dbRDA
 .libPaths(&#39;~/mambaforge/envs/randomforest/lib/R/library&#39;)
 setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept/&#39;)
@@ -5336,6 +7208,7 @@ hzp
 dev.off() 
 </code></pre>
 </div>
+</div>
 <div id="resequencing-ordinations" class="section level2">
 <h2>Resequencing Ordinations</h2>
 <p>Resequencing PCA, NMDS:</p>
@@ -5489,7 +7362,7 @@ write.table(anoreq,file=&#39;Background-ANOSIM.txt&#39;,quote=F,sep=&#39;\t&#39;
 <p>Manhattan plot, showing the FDR-corrected pvalues for 5mC and pop gen
 data:</p>
 <pre class="r"><code>#### Manhattan Plot, chr18 zoom in, and chi squared 
-setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept&#39;)
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504&#39;)
 .libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
 library(tidyverse)
 library(karyoploteR)
@@ -5510,13 +7383,18 @@ crowG &lt;- makeGRangesFromDataFrame(genome,seqnames.field = &#39;chr&#39;,start
 crow18 &lt;- makeGRangesFromDataFrame(subset(genome,chr==&#39;18&#39;),seqnames.field = &#39;chr&#39;,start.field = &#39;start&#39;,end.field = &#39;end&#39;)
 
 ##### Import 5mC data ####
-class &lt;- read.table(&#39;Full.DSS.BP-10x.Classified-Annotated_20250107.txt&#39;,header=TRUE)
+class &lt;- read.table(&#39;Full-HZ-CG.DSS.BP-10x.Classified-Annotated-SNPless_20250410.txt&#39;,header=TRUE)
+
+# Positions significant in both ComGar and HybZon
+class %&gt;% select(chr,start,site,Class,DMP.HZ,DMP.CG,SupportCount,Region) %&gt;% filter(Class == &#39;Taxon&#39; &amp; SupportCount &gt; 1)
+# chr    start           site Class DMP.HZ DMP.CG SupportCount     Region
+# 1 chr18 10000909 chr18_10000910 Taxon  Taxon  Taxon            2 Intergenic
+# 2 chr18  9005914  chr18_9005915 Taxon  Taxon  Taxon            2 Intergenic
 
 #Split by FDRS, rename, create some extra columns for plotting 
 dats = class %&gt;% select(chr,start,Region,Class,contains(&#39;fdrs&#39;)) %&gt;%  
-  dplyr::rename(WGBS.Taxon = fdrs_Species.wgbs, WGBS.Sex = fdrs_Sex.wgbs, WGBS.TissueL = fdrs_TissueL.wgbs, WGBS.TissueM = fdrs_TissueM.wgbs,                
-                CG.Taxon = fdrs_Species.cg, CG.Sex = fdrs_Sex.cg, CG.AgeCHK = fdrs_StageCHK.cg, CG.AgeYRL = fdrs_StageYRL.cg,                
-                HZ.HybridIndex = fdrs_Chr18_Hybrid_Index.hz) %&gt;%   
+  dplyr::rename(CG.Taxon = fdrs_Species.CG, CG.Sex = fdrs_Sex.CG, CG.AgeCHK = fdrs_StageCHK.CG, CG.AgeYRL = fdrs_StageYRL.CG,                
+                HZ.HybridIndex = fdrs_Chr18_Hybrid_Index.HZ) %&gt;%   
   pivot_longer(!c(chr,start,Region,Class),names_to = &#39;variable&#39;, values_to = &#39;fdrs&#39;) %&gt;%   
   na.omit() %&gt;%  
   mutate(site = paste0(chr,&#39;_&#39;,start))
@@ -5547,11 +7425,10 @@ dats4 = dats3 %&gt;%
                                              ifelse(Region == &#39;Repeat&#39;,5,8))))))
 
 dats5 = dats4 %&gt;% distinct
-write.table(dats5,&#39;5mC_10x_Manhattan_Input-20250107.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
+write.table(dats5,&#39;5mC_10x_Manhattan_Input-20250411.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
 
-dats3 = read.table(&#39;5mC_10x_Manhattan_Input-20250107.txt&#39;,header=T,sep = &quot;\t&quot;,comment.char = &#39;&#39;)
-dats3 = dats3 %&gt;% mutate(experiment = gsub(&#39;CG&#39;,&#39;ComGar.RRBS&#39;,experiment),
-                         experiment = gsub(&#39;WGBS&#39;,&#39;ComGar.WGBS&#39;,experiment),
+dats5 = read.table(&#39;5mC_10x_Manhattan_Input-20250411.txt&#39;,header=T,sep = &quot;\t&quot;,comment.char = &#39;&#39;)
+dats5 = dats5 %&gt;% mutate(experiment = gsub(&#39;CG&#39;,&#39;ComGar.RRBS&#39;,experiment),
                          experiment = gsub(&#39;HZ&#39;,&#39;HybZon.RRBS&#39;,experiment))
 
 #import gene track
@@ -5580,9 +7457,9 @@ gb2 = genome[seq(2, nrow(genome), 2), ][[1]]
 
 #subset each raw dataset into specific colors
 div_gb1 &lt;- divs %&gt;% filter(chr %in% gb1)
-div_gb1$Color &lt;- &quot;grey60&quot;
+div_gb1$Color &lt;- &quot;black&quot;
 div_gb2 &lt;- divs %&gt;% filter(chr %in% gb2)
-div_gb2$Color &lt;- &quot;grey10&quot;
+div_gb2$Color &lt;- &quot;grey60&quot;
 divs_use &lt;- rbind(div_gb1,div_gb2) %&gt;% arrange(chr,Genstart)
 divs_use = divs_use %&gt;% mutate(Shape = ifelse(Region == &#39;Promoter&#39;,4,
                                               ifelse(Region == &#39;CDS&#39;,1,
@@ -5594,15 +7471,16 @@ divs_use = divs_use %&gt;% mutate(Shape = ifelse(Region == &#39;Promoter&#39;,4,
 ##### Plot All Variable manhattan plots ####
 subs = c(&#39;Chr18&#39;,&#39;GW&#39;)
 subs = &#39;GW&#39;
+subs = &#39;Chr18&#39;
 
 #for taxon only
-tax = dats3 %&gt;% filter(variable == &#39;Taxon&#39;)
+tax = dats5 %&gt;% filter(variable == &#39;Taxon&#39;)
 for (sub in subs){
   
   cat(&#39;Plotting : &#39;,sub,&#39;\n&#39;)
   if (sub == &#39;Chr18&#39;) {ht = 5; wd = 6} else {ht = 7; wd = 7}
-  png(paste0(&#39;20250107_&#39;,sub,&#39;-Manhattan_Taxon.png&#39;),units=&#39;in&#39;,res=600,height=ht,width=wd,bg=&#39;transparent&#39;)
-  #pdf(paste0(&#39;20250107_&#39;,sub,&#39;-Manhattan_Taxon_LABELS_.pdf&#39;),height=ht,width=wd)
+  png(paste0(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250414_&#39;,sub,&#39;-Manhattan_Taxon.png&#39;),units=&#39;in&#39;,res=600,height=ht,width=wd,bg=&#39;transparent&#39;)
+  #pdf(paste0(&#39;20250411_&#39;,sub,&#39;-Manhattan_Taxon_LABELS_.pdf&#39;),height=ht,width=wd)
   
   #Plot Base, add labels.plotter=NULL for no chr names
   pp &lt;- getDefaultPlotParams(plot.type=4)
@@ -5614,7 +7492,7 @@ for (sub in subs){
     kp &lt;- plotKaryotype(plot.type=4, genome = crow18,plot.params = pp,zoom = zoom18,labels.plotter=NULL)
     #kp &lt;- plotKaryotype(plot.type=4, genome = crow18,plot.params = pp,labels.plotter=NULL) #for entire chr 
     kpAddBaseNumbers(kp,tick.dist = 500000,minor.tick.dist = 100000,cex=0.65)
-    tracks = 6
+    tracks = 5
   } else { 
     pp$leftmargin &lt;- 0.08
     kp &lt;- plotKaryotype(plot.type=4, genome = crowG,plot.params = pp,labels.plotter=NULL)
@@ -5628,11 +7506,11 @@ for (sub in subs){
     kpAddChromosomeNames(kp, chr.names = odd.names,cex=0.7)
     kpAddChromosomeNames(kp, chr.names = even.names, yoffset = -7,cex=0.7)
     kpAddBaseNumbers(kp,tick.dist = 25000000,cex=0.5)
-    tracks = 6
+    tracks = 5
   }
   
   run &lt;- &#39;tax&#39;
-  vars &lt;- c(&#39;ComGar.WGBS&#39;,&#39;ComGar.RRBS&#39;,&#39;HybZon.RRBS&#39;)
+  vars &lt;- c(&#39;ComGar.RRBS&#39;,&#39;HybZon.RRBS&#39;)
   counter &lt;- 0
   
   for (varz in vars) {
@@ -5678,12 +7556,12 @@ for (sub in subs){
     counter = counter+1
     at &lt;- autotrack(current.track = counter, total.tracks = tracks);
     kpArrows(kp, chr=genes$chr, x0=genes$sstart, x1=genes$send, y0=0.15, y1=0.15,length=0.1,lwd=1,r0 = at$r0,r1=at$r1)
-    kpText(kp, chr=melgene$chr, x=melgene$midpoint, labels = melgene$label, col=&#39;darkmagenta&#39;,y=0.6,srt=45,cex=.35,r0 = at$r0,r1=at$r1)
-    kpText(kp, chr=othergene$chr, x=othergene$midpoint, labels = othergene$label, y=0.6,srt=45,cex=.35,r0 = at$r0,r1=at$r1)
+    kpText(kp, chr=melgene$chr, x=melgene$midpoint, labels = melgene$label, col=&#39;darkmagenta&#39;,y=0.6,srt=45,cex=.5,r0 = at$r0,r1=at$r1)
+    kpText(kp, chr=othergene$chr, x=othergene$midpoint, labels = othergene$label, y=0.6,srt=45,cex=.3,r0 = at$r0,r1=at$r1)
   } else {}
   
   #add genetic data
-  if (gens == &#39;DxyFST&#39;) { genvars = c(&#39;FST&#39;,&#39;Dxy&#39;) } else { genvars = c(&#39;FST&#39;,&#39;Dxy&#39;,&#39;FuLiD&#39;,&#39;TajimaD&#39;,&#39;HapD&#39;) }
+  genvars = c(&#39;FST&#39;,&#39;Dxy&#39;)
   for (var2 in genvars) {
     counter &lt;- counter+1
     cat(&#39;Current Autotrack: &#39;,counter,&#39; for &#39;,var2,&#39;\n&#39;)
@@ -5696,12 +7574,14 @@ for (sub in subs){
     if (var2 == &#39;Dxy&#39; &amp; sub == &#39;Chr18&#39;) { maxd = 0.01} else if (var2 == &#39;Dxy&#39; &amp; sub == &#39;GW&#39;) { maxd = 0.02} else if (var2 == &#39;FST&#39;) { maxd = 1} else {maxd = max(dat$variable,na.rm=TRUE)}
     dat = dat %&gt;% arrange(chr,start)
     # #add genetic values
-    grey = dat %&gt;% filter(Color == &#39;grey60&#39;)
-    black = dat %&gt;% filter(Color == &#39;grey10&#39;)
-    kpLines(kp,chr=grey$chr,x=grey$start,y=grey$variable,ymin=min(dat$variable,na.rm=TRUE),
-            col=&#39;grey10&#39;,ymax=maxd,r0=at$r0, r1=at$r1,clipping=TRUE)
-    kpLines(kp,chr=black$chr,x=black$start,y=black$variable,ymin=min(dat$variable,na.rm=TRUE),
-            col=&#39;grey60&#39;,ymax=maxd,r0=at$r0, r1=at$r1,clipping=TRUE)
+    kpPoints(kp,chr=dat$chr,x=dat$start,y=dat$variable,ymin=min(dat$variable,na.rm=TRUE),
+            col=dat$Color,ymax=maxd,r0=at$r0, r1=at$r1,clipping=TRUE)
+    # grey = dat %&gt;% filter(Color == &#39;grey60&#39;)
+    # black = dat %&gt;% filter(Color == &#39;grey10&#39;)
+    # kpLines(kp,chr=grey$chr,x=grey$start,y=grey$variable,ymin=min(dat$variable,na.rm=TRUE),
+    #         col=&#39;grey10&#39;,ymax=maxd,r0=at$r0, r1=at$r1,clipping=TRUE)
+    # kpLines(kp,chr=black$chr,x=black$start,y=black$variable,ymin=min(dat$variable,na.rm=TRUE),
+    #         col=&#39;grey60&#39;,ymax=maxd,r0=at$r0, r1=at$r1,clipping=TRUE)
     kpAxis(kp, ymin =min(dat$variable,na.rm=TRUE), ymax=maxd,cex=0.7,r0=at$r0, r1=at$r1,col=&quot;black&quot;,numticks = 2)
   }
   
@@ -5717,8 +7597,72 @@ for (sub in subs){
   
 }
 
-#chr 7 region
-dats3 %&gt;% filter( chr == &#39;7&#39; &amp; start &gt; 33600035 &amp; start &lt; 33956161)</code></pre>
+# Plot other region
+c=&#39;4&#39;
+cs=2.5e6
+ce=4e6
+png(paste0(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250411_&#39;,c,&#39;-&#39;,cs,&#39;-&#39;,ce,&#39;-Manhattan_Taxon.png&#39;),units=&#39;in&#39;,res=600,height=ht,width=wd,bg=&#39;transparent&#39;)
+kp &lt;- plotKaryotype(plot.type=4, genome = crowG,plot.params = pp,zoom = data.frame(c,cs,ce),labels.plotter=NULL)
+kpAddBaseNumbers(kp,tick.dist = 500000,minor.tick.dist = 100000,cex=0.65)
+run &lt;- &#39;tax&#39;
+vars &lt;- c(&#39;ComGar.RRBS&#39;,&#39;HybZon.RRBS&#39;)
+counter &lt;- 0
+tracks=4
+
+for (varz in vars) {
+  counter &lt;- counter+1
+  cat(&#39;Current Autotrack: &#39;,counter,&#39; for &#39;,varz,&#39;\n&#39;)
+  at &lt;- autotrack(current.track = counter, total.tracks = tracks);
+  at$r1 &lt;- at$r1-0.05
+  #grab data
+  data &lt;- get(run)
+  dat = data %&gt;% filter(experiment == varz &amp; chr == c &amp; start &gt; cs &amp; start &lt; ce)
+  dat = dat %&gt;% mutate(FDR = -log10(fdrs))
+  dt = dat   
+  
+  ## Otherwise, just use this 
+  maxd &lt;- max(dt$FDR)
+  dt &lt;- dt %&gt;% dplyr::rename(val = FDR)
+  datNS = subset(dt,Color == &#39;orange&#39; | Color == &#39;grey80&#39;)
+  datS = subset(dt,Color != &#39;grey80&#39; &amp; Color != &#39;orange&#39;)
+  
+  #add pvalues, first non-significant
+  kpPoints(kp, chr = datNS$chr, x=datNS$start, y=datNS$val,
+           col=transparent(&#39;#DDDDDD&#39;,amount=0.5),
+           pch=datNS$Shape,cex=0.7,
+           ymin=0,ymax=maxd,r0=at$r0, r1=at$r1);
+  #then significant
+  kpPoints(kp, chr = datS$chr, x=datS$start, y=datS$val,
+           col=as.character(datS$Color),pch=datS$Shape,cex=0.9,
+           ymin=0,ymax=maxd,r0=at$r0, r1=at$r1);
+  kpAxis(kp, ymin =0, ymax=maxd,cex=0.7,r0=at$r0, r1=at$r1,col=&quot;black&quot;,numticks = 2);
+  kpAbline(kp, h=0,r0=at$r0, r1=at$r1, col=&quot;black&quot;, lwd=1,lty=1)
+  kpAbline(kp, h=-log10(0.01),ymin=0,ymax=maxd,r0=at$r0, r1=at$r1, col=&quot;black&quot;, lwd=1,lty=2)
+}
+
+#add genetic data
+genvars = c(&#39;FST&#39;,&#39;Dxy&#39;)
+for (var2 in genvars) {
+  counter &lt;- counter+1
+  cat(&#39;Current Autotrack: &#39;,counter,&#39; for &#39;,var2,&#39;\n&#39;)
+  at &lt;- autotrack(current.track = counter, total.tracks = tracks);
+  at$r1 &lt;- at$r1-0.03
+  data &lt;- divs_use
+  dat &lt;- data %&gt;% select(c(chr,Region,Genstart,Genend,Color,var2,Shape))
+  names(dat) = c(&#39;chr&#39;,&#39;Region&#39;,&#39;start&#39;,&#39;end&#39;,&#39;Color&#39;,&#39;variable&#39;,&#39;Shape&#39;)
+  if (var2 == &#39;Dxy&#39; &amp; sub == &#39;Chr18&#39;) { maxd = 0.01} else if (var2 == &#39;Dxy&#39; &amp; sub == &#39;GW&#39;) { maxd = 0.02} else if (var2 == &#39;FST&#39;) { maxd = 1} else {maxd = max(dat$variable,na.rm=TRUE)}
+  dat = dat %&gt;% arrange(chr,start)
+  # #add genetic values
+  grey = dat %&gt;% filter(Color == &#39;grey60&#39;)
+  black = dat %&gt;% filter(Color == &#39;grey10&#39;)
+  kpLines(kp,chr=grey$chr,x=grey$start,y=grey$variable,ymin=min(dat$variable,na.rm=TRUE),
+          col=&#39;grey10&#39;,ymax=maxd,r0=at$r0, r1=at$r1,clipping=TRUE)
+  kpLines(kp,chr=black$chr,x=black$start,y=black$variable,ymin=min(dat$variable,na.rm=TRUE),
+          col=&#39;grey60&#39;,ymax=maxd,r0=at$r0, r1=at$r1,clipping=TRUE)
+  kpAxis(kp, ymin =min(dat$variable,na.rm=TRUE), ymax=maxd,cex=0.7,r0=at$r0, r1=at$r1,col=&quot;black&quot;,numticks = 2)
+}
+dev.off()
+</code></pre>
 <div id="chr7-inspections" class="section level3">
 <h3>Chr7 Inspections</h3>
 <pre class="r"><code>.libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
@@ -5873,7 +7817,7 @@ for (sub in subs){
 <div id="volcano-plots" class="section level2">
 <h2>Volcano Plots</h2>
 <pre class="r"><code>#### Volcano plot of FDR ~ 5mC Divergence 
-setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept&#39;)
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504&#39;)
 .libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
 library(tidyverse)
 library(karyoploteR)
@@ -5883,27 +7827,24 @@ library(ggplot2)
 library(scales)
 library(RColorBrewer)
 
-class = read.table(&#39;Full.DSS.BP-10x.Classified-Annotated_20250107.txt&#39;,header=T,sep = &quot;\t&quot;,comment.char = &#39;&#39;)#volcano
+class = read.table(&#39;Full-HZ-CG.DSS.BP-10x.Classified-Annotated-SNPless_20250410.txt&#39;,header=T,sep = &quot;\t&quot;,comment.char = &#39;&#39;)#volcano
 v1 = class %&gt;% select(site,Class,contains(c(&#39;divergence&#39;),ignore.case = FALSE))  %&gt;% pivot_longer(!c(site,Class),values_to = &#39;Divergence&#39;) %&gt;% na.omit %&gt;% mutate(name = gsub(&#39;divergence_&#39;,&#39;&#39;,name))
 v1 = v1 %&gt;% separate(name,into=c(&#39;Variable&#39;,&#39;Experiment&#39;))
 v2 = class %&gt;% select(site,Class,contains(c(&#39;fdrs&#39;),ignore.case = FALSE))  %&gt;% pivot_longer(!c(site,Class),values_to = &#39;FDRS&#39;) %&gt;% na.omit %&gt;% mutate(name = gsub(&#39;fdrs_&#39;,&#39;&#39;,name))
 v2 = v2 %&gt;% separate(name,into=c(&#39;Variable&#39;,&#39;Experiment&#39;))
 v3 = left_join(v1,v2)
 v4 &lt;- v3 %&gt;% filter(!grepl(&#39;Hybrid|hz&#39;,Experiment)) %&gt;% na.omit
-v4 = v4 %&gt;% mutate(Experiment = gsub(&#39;^cg&#39;,&#39;ComGar.RRBS&#39;,Experiment),
-                   Experiment = gsub(&#39;^wgbs&#39;,&#39;ComGar.WGBS&#39;,Experiment),
+v4 = v4 %&gt;% mutate(Experiment = gsub(&#39;^CG&#39;,&#39;ComGar&#39;,Experiment),
                    Variable = gsub(&#39;Species&#39;,&#39;Taxon&#39;,Variable),
                    Variable = gsub(&#39;StageCHK&#39;,&#39;StageChick&#39;,Variable),
-                   Variable = gsub(&#39;StageYRL&#39;,&#39;StageYearling&#39;,Variable),
-                   Variable = gsub(&#39;TissueL&#39;,&#39;TissueLiver&#39;,Variable),
-                   Variable = gsub(&#39;TissueM&#39;,&#39;TissueSpleen&#39;,Variable))
+                   Variable = gsub(&#39;StageYRL&#39;,&#39;StageYearling&#39;,Variable))
 
 # Checkpoint
-write.table(v4,file=&#39;20250107_Volcano_Input.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
-v4 = read.table(&#39;20250107_Volcano_Input.txt&#39;,header=T,sep = &quot;\t&quot;,comment.char = &#39;&#39;)
+write.table(v4,file=&#39;20250415_Volcano_Input.txt&#39;,quote=F,sep=&#39;\t&#39;,row.names=F)
+v4 = read.table(&#39;20250415_Volcano_Input.txt&#39;,header=T,sep = &quot;\t&quot;,comment.char = &#39;&#39;)
 
 # Plot
-png(&#39;20250107_VolcanoPlots-Known.png&#39;,units=&#39;in&#39;,height=5,width=7,res=600)
+png(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250415_VolcanoPlots-Known.png&#39;,units=&#39;in&#39;,height=5,width=7,res=600)
 vp = v4 %&gt;% 
   filter(Class != &#39;Unknown&#39;) %&gt;% 
   ggplot(aes(y=-log10(FDRS),x=Divergence,col=Variable))+
@@ -5919,7 +7860,7 @@ dev.off()
 <div id="hybrid-index-to-5mc" class="section level2">
 <h2>Hybrid Index to 5mC</h2>
 <pre class="r"><code>#### Plot 5mC ~ Hybrid Index 
-setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept&#39;)
+setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_202504&#39;)
 .libPaths(&#39;~/mambaforge/envs/r/lib/R/library&#39;)
 library(tidyverse)
 library(viridis)
@@ -5928,18 +7869,19 @@ library(scales)
 library(RColorBrewer)
 
 # Import 5mC data
-class &lt;- read.table(&#39;Full.DSS.BP-10x.Classified-Annotated_20250107.txt&#39;,header=TRUE)
+class &lt;- read.table(&#39;Full-HZ-CG.DSS.BP-10x.Classified-Annotated-SNPless_20250410.txt&#39;,header=TRUE)
 
+##### Plot Hybrid Index ~ 5mC #####
 #Plot Sites of Interest 
-md = read.table(&#39;All-Metadata.txt&#39;,header=T)
-hz = class %&gt;% filter(Class == &#39;Taxon&#39; &amp; SupportCount &gt;= 2 &amp; DMP.hz == &#39;Taxon&#39;) %&gt;% select(site,contains(&#39;.hz&#39;))
+md = read.table(&#39;HZ_Metadata.txt&#39;,header=T)
+hz = class %&gt;% filter(Class == &#39;Taxon&#39; &amp; SupportCount &gt;= 2 &amp; DMP.HZ == &#39;Taxon&#39;) %&gt;% select(site,contains(&#39;.HZ&#39;))
 
 #first hybrid index
 hi = hz %&gt;% 
-  select(-c(DMP.hz,Divergence.hz,Variance.hz,contains(&#39;divergence&#39;),contains(&#39;fdrs&#39;))) %&gt;%
+  select(-c(DMP.HZ,Divergence.HZ,contains(&#39;divergence&#39;),contains(&#39;fdrs&#39;))) %&gt;%
   pivot_longer(!site,names_to = &#39;Short_ID&#39;,values_to = &#39;Methylation&#39;) %&gt;% 
-  mutate(Short_ID = gsub(&#39;.hz&#39;,&#39;&#39;,Short_ID))
-him = merge(hi,md %&gt;% select(Short_ID,Chr18_Hybrid_Index,Species),by=&#39;Short_ID&#39;)
+  mutate(Short_ID = gsub(&#39;.HZ&#39;,&#39;&#39;,Short_ID))
+him = merge(hi,md %&gt;% select(Short_ID = variable,Chr18_Hybrid_Index,Species),by=&#39;Short_ID&#39;)
 him = him %&gt;% mutate(HI = ifelse(Species == &#39;C.corone&#39;,&#39;C.c. corone&#39;,
                                  ifelse(Species == &#39;C.cornix&#39;,&#39;C.c. cornix&#39;,
                                         ifelse(Chr18_Hybrid_Index &lt; 0.25,&#39;C.c. corone-like&#39;,
@@ -5958,7 +7900,77 @@ hip = him %&gt;% dplyr::rename(Taxon = Species) %&gt;%
   theme(panel.border = element_rect(colour = &quot;black&quot;, fill=NA, size=1))
 hip
 
-ggsave(&#39;20250107_Hybrid5mC_Distributions.pdf&#39;,hip,dpi=300,height=2,width=6)
+ggsave(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250414_Hybrid5mC_Distributions.pdf&#39;,hip,dpi=300,height=2,width=4)
+
+
+sid=NULL
+for (si in unique(him$site)) {
+  s1 = him %&gt;% filter(site == si) %&gt;% select(id = Short_ID, mC = Methylation) %&gt;% na.omit()
+  mcd = s1 %&gt;% dplyr::select(mC) %&gt;% data.frame
+  rownames(mcd) = s1$id
+  
+  #kmean&#39;s clustering
+  k2 = kmeans(mcd, centers = 3, nstart = 5)
+  mcd$cluster = k2$cluster
+  mcd$Short_ID = rownames(mcd)
+  mcd$site = si
+  
+  sid = rbind(sid,mcd)
+}
+
+#plot
+hild = merge(sid,md %&gt;% dplyr::select(Short_ID = variable,Chr18_Hybrid_Index,Species),by=&#39;Short_ID&#39;)
+
+# Assign genotypes based on unmeth / het / meth
+clusters &lt;- hild %&gt;%
+  group_by(site,cluster) %&gt;% 
+  summarize(mean = mean(mC)) %&gt;% 
+  ungroup %&gt;% 
+  group_by(site) %&gt;%
+  arrange(mean, .by_group = TRUE) %&gt;% # Sort within each group by mean
+  mutate(Genotype = case_when(
+    row_number() == 1 ~ &quot;U/U&quot;, # Lowest mean
+    row_number() == 2 ~ &quot;U/M&quot;, # Middle mean
+    row_number() == 3 ~ &quot;M/M&quot;  # Highest mean
+  )) %&gt;%
+  ungroup() %&gt;% select(site,cluster,Genotype)
+him2 &lt;- left_join(hild,clusters)
+
+# Plot and confirm genotypes are consistent
+hip = him2 %&gt;% dplyr::rename(Taxon = Species) %&gt;% 
+  ggplot(aes(x=Chr18_Hybrid_Index,y=mC,fill=Genotype,shape=Taxon))+
+  geom_jitter(width=0.00,size=2.5,show.legend = T)+
+  scale_fill_manual(values=rev(viridis(4,option=&#39;mako&#39;)))+
+  scale_shape_manual(values=c(24,21,22))+ylim(c(-.01,1.01))+
+  xlab(&#39;Genetic Hybrid Index&#39;)+ylab(&#39;Methylation (%)&#39;)+
+  facet_wrap(site~.,scales=&#39;free&#39;)+
+  theme_classic()+
+  theme(panel.border = element_rect(colour = &quot;black&quot;, fill=NA, size=1))+
+  guides(fill=guide_legend(override.aes=list(shape=21)))
+hip
+
+pdf(&#39;~/symlinks/hzone/Methylation_Analyses/figures/20250414_Clustered_Genotypes.pdf&#39;,height=2,width=5)
+hip
+dev.off()
+
+##### LD Between outlier sites ##### 
+counter = 0
+for (si in unique(him2$site)) {
+  counter = counter + 1
+  gts = subset(him2,site==si) %&gt;% dplyr::select(Genotype)
+  gt = genotype(gts$Genotype)
+  assign(paste0(&#39;g&#39;,counter),gt)
+}
+
+LD(g1,g2)
+
+# Pairwise LD
+# -----------
+#   D        D&#39;      Corr
+# Estimates: 0.1362936 0.9994866 0.6321308
+# 
+#               X^2      P-value  N
+# LD Test: 17.58193 2.751904e-05 22
 </code></pre>
 <div id="variation-across-hybrid-groups" class="section level3">
 <h3>Variation Across Hybrid Groups</h3>
@@ -6066,94 +8078,6 @@ mcp
 dev.off()
 </code></pre>
 </div>
-</div>
-<div id="ld-on-taxon-sites" class="section level2">
-<h2>LD on Taxon Sites</h2>
-<p>Plot the sites on chr18 which are identified as genetically related,
-to see if they are also in LD</p>
-<pre class="r"><code>.libPaths(&#39;~/miniconda3/envs/randomforest/lib/R/library&#39;)
-setwd(&#39;/dss/dsslegfs01/pr53da/pr53da-dss-0018/projects/2021__HybridZone_Epigenetics/Methylation_Analyses/Classification_Sept/&#39;)
-library(tidyverse)
-library(cluster)  
-library(factoextra)
-library(viridis)
-library(genetics)
-
-#import sites and metadata
-sites = read.csv(&#39;chr18_sites.csv&#39;,header=T)
-md = read.table(&#39;F:/Research/scratch/crow_hybrid_paper/All-Metadata.txt&#39;,header=T)
-sites = sites %&gt;% dplyr::select(-c(H_Ba_H02,H_Ne_Y03,H_Ne_Y14))
-
-sid=NULL
-for (si in unique(hz$site)) {
-  s1 = hz %&gt;% filter(site == si) %&gt;% select(matches(&#39;site|.hz&#39;)) %&gt;% 
-    select(matches(&#39;site|^S_|^H_|^D_&#39;)) %&gt;% 
-    pivot_longer(!(site),names_to=&#39;id&#39;,values_to = &#39;mC&#39;) %&gt;% dplyr::select(-site) %&gt;% na.omit()
-  s1 &lt;- s1 %&gt;% mutate(id = gsub(&#39;.hz&#39;,&#39;&#39;,id))
-  mcd = s1 %&gt;% dplyr::select(mC) %&gt;% data.frame
-  rownames(mcd) = s1$id
-  
-  #kmean&#39;s clustering
-  k2 = kmeans(mcd, centers = 3, nstart = 5)
-  mcd$cluster = k2$cluster
-  mcd$Short_ID = rownames(mcd)
-  mcd$site = si
-  
-  sid = rbind(sid,mcd)
-}
-
-#plot
-him = merge(sid,md %&gt;% dplyr::select(Short_ID,Chr18_Hybrid_Index,Species),by=&#39;Short_ID&#39;)
-
-# Assign genotypes based on unmeth / het / meth
-clusters &lt;- him %&gt;%
-  group_by(site,cluster) %&gt;% 
-  summarize(mean = mean(mC)) %&gt;% 
-  ungroup %&gt;% 
-  group_by(site) %&gt;%
-  arrange(mean, .by_group = TRUE) %&gt;% # Sort within each group by mean
-  mutate(Genotype = case_when(
-    row_number() == 1 ~ &quot;U/U&quot;, # Lowest mean
-    row_number() == 2 ~ &quot;U/M&quot;, # Middle mean
-    row_number() == 3 ~ &quot;M/M&quot;  # Highest mean
-  )) %&gt;%
-  ungroup() %&gt;% select(site,cluster,Genotype)
-him2 &lt;- left_join(him,clusters)
-
-# Plot and confirm genotypes are consistent
-hip = him2 %&gt;% dplyr::rename(Taxon = Species) %&gt;% 
-  ggplot(aes(x=Chr18_Hybrid_Index,y=mC,fill=Genotype,shape=Taxon))+
-  geom_jitter(width=0.00,size=5,show.legend = T)+
-  scale_fill_manual(values=viridis(3,option=&#39;mako&#39;))+
-  scale_shape_manual(values=c(24,21,22))+ylim(c(-.01,1.01))+
-  xlab(&#39;Genetic Hybrid Index&#39;)+ylab(&#39;Methylation (%)&#39;)+
-  facet_wrap(site~.,scales=&#39;free&#39;)+
-  theme_classic()+
-  theme(panel.border = element_rect(colour = &quot;black&quot;, fill=NA, size=1))+
-  guides(fill=guide_legend(override.aes=list(shape=21)))
-hip
-
-pdf(&#39;20250107_Clustered_Genotypes.pdf&#39;,height=2.5,width=8)
-hip
-dev.off()
-
-counter = 0
-for (si in unique(him2$site)) {
-  counter = counter + 1
-  gts = subset(him2,site==si) %&gt;% dplyr::select(Genotype)
-  gt = genotype(gts$Genotype)
-  assign(paste0(&#39;g&#39;,counter),gt)
-}
-
-LD(g1,g2,g3)
-
-# Pairwise LD
-# -----------
-#   D        D&#39;      Corr
-# Estimates: 0.1362936 0.9994866 0.6321308
-# 
-#               X^2      P-value  N
-# LD Test: 17.58193 2.751904e-05 22</code></pre>
 </div>
 </div>
 <div id="sensitivity-analyses" class="section level1">
@@ -6674,7 +8598,7 @@ $(document).ready(function ()  {
       ignoreSelector: ".toc-ignore",
       scrollTo: 0
     };
-    options.showAndHide = false;
+    options.showAndHide = true;
     options.smoothScroll = true;
 
     // tocify
