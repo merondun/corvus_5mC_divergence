@@ -1,8 +1,8 @@
 # Contributions of 5mC to Corvus evolution
 
-The release corresponding to Apr 2025 is archived on zenodo: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14641851.svg)](https://doi.org/10.5281/zenodo.14641851)
+This github release corresponding to Apr 2025 is archived on zenodo: [![DOI](https://zenodo.org/badge/656417446.svg)](https://doi.org/10.5281/zenodo.11244554)
 
-Large data files can be found on zenodo: https://zenodo.org/doi/10.5281/zenodo.14641719
+Large data files can be found on zenodo: https://doi.org/10.5281/zenodo.15243953
 
 **Highly recommended to open the script file `.md` in a markdown editor (typora/obsidian), or use the `.hmtl`.**
  
